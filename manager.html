@@ -2,164 +2,337 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRM Global Hospitals — Operations & Resource Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SRM Prime, Ramapuram — Operations & Resource Management</title>
+  <meta name="theme-color" content="#0d0507">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d92332'/%3E%3Cpath d='M32 14v36M14 32h36' stroke='white' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .alarm-active { animation: alertFlash 1s infinite alternate; }
-    @keyframes alertFlash {
-      0% { background-color: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.85); }
-      100% { background-color: rgba(239, 68, 68, 0.02); border-color: rgba(239, 68, 68, 0.2); }
-    }
-    .pulse-alert { animation: pulse 1.5s infinite; }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(226, 211, 107, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(226, 211, 107, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(226, 211, 107, 0); }
-    }
+  :root{
+    --bg:#0d0507;--bg-2:#1a080c;
+    --ink:#fdf6f6;--ink-2:#cdb3b6;--ink-3:#8f7479;
+    --red:#e5303c;--red-2:#ff6b75;--green:#34d399;--amber:#fbbf24;
+    --glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.10);--line:rgba(255,255,255,.14);
+  }
+  html{-webkit-text-size-adjust:100%}
+  *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+    background:var(--bg);color:var(--ink);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;letter-spacing:-.01em;
+  }
+  ::selection{background:var(--red);color:#fff}
+
+  /* ambient background (same as index) */
+  .bg-aurora{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(60vw 50vw at 85% 10%,rgba(229,48,60,.22),transparent 60%),
+      radial-gradient(50vw 45vw at 5% 40%,rgba(255,255,255,.05),transparent 60%),
+      radial-gradient(70vw 60vw at 60% 110%,rgba(229,48,60,.16),transparent 60%),
+      linear-gradient(180deg,var(--bg),var(--bg-2) 60%,var(--bg));}
+  .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 100%);
+            mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 100%);}
+  .layer{position:relative;z-index:2}
+
+  /* text colours */
+  .c-ink{color:var(--ink)} .c-2{color:var(--ink-2)} .c-3{color:var(--ink-3)}
+  .c-red{color:var(--red-2)} .c-green{color:var(--green)} .c-amber{color:var(--amber)}
+  .hover-ink:hover{color:#fff}
+
+  /* glass surfaces */
+  .glass{
+    background:linear-gradient(160deg,rgba(255,255,255,.11),rgba(255,255,255,.03));
+    border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);
+    box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);
+    border-radius:24px;}
+  .glass-dark{background:linear-gradient(160deg,rgba(44,15,21,.86),rgba(18,6,9,.92))}
+  .glass-sm{
+    background:var(--glass);border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+    box-shadow:0 10px 30px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);
+    border-radius:20px;}
+  .item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:16px;
+    transition:border-color .25s,background .25s,transform .25s}
+  .item:hover{border-color:rgba(255,107,117,.4);background:rgba(255,255,255,.08)}
+  .well{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.09);border-radius:14px}
+  .nav-glass{
+    background:rgba(24,8,12,.55);border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12);
+    border-radius:28px;}
+  .sep{border-bottom:1px solid var(--line)}
+  .sep-t{border-top:1px solid var(--line)}
+  .overlay{background:rgba(13,5,7,.7);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  .tone-red{border-color:rgba(255,107,117,.42)}
+  .tone-amber{border-color:rgba(251,191,36,.38)}
+  .tone-green{border-color:rgba(52,211,153,.38)}
+  .foot-glass{background:rgba(10,4,6,.6);border-top:1px solid var(--line);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+
+  /* icon marks */
+  .mark{display:grid;place-items:center;flex:none;color:#fff;
+    background:linear-gradient(145deg,#f04452,#b3121f);
+    box-shadow:0 6px 18px rgba(229,48,60,.5),inset 0 1px 0 rgba(255,255,255,.4)}
+  .mark-soft{display:grid;place-items:center;flex:none;color:var(--ink-2);
+    background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+    border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-family:inherit;
+    border:1px solid var(--line);border-radius:999px;cursor:pointer;transition:.25s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:disabled{cursor:default;transform:none}
+  .btn-wide{border-radius:18px}
+  .btn-red{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;border-color:rgba(255,255,255,.25);
+    box-shadow:0 8px 24px rgba(229,48,60,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-red:hover{box-shadow:0 12px 30px rgba(229,48,60,.6),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-green{background:linear-gradient(180deg,#3fe0a9,#0f9d6e);color:#032a1d;border-color:rgba(255,255,255,.3);
+    box-shadow:0 8px 24px rgba(52,211,153,.3),inset 0 1px 0 rgba(255,255,255,.45)}
+  .btn-green:hover{box-shadow:0 12px 30px rgba(52,211,153,.45),inset 0 1px 0 rgba(255,255,255,.45)}
+  .btn-white{background:linear-gradient(180deg,#fff,#e4e6ea);color:#2a0a10;border-color:rgba(255,255,255,.6);
+    box-shadow:0 12px 30px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.8)}
+  .btn-ghost{background:var(--glass);color:var(--ink)}
+  .btn-ghost:hover{background:var(--glass-2)}
+  .btn-soft-red{background:rgba(229,48,60,.14);color:var(--red-2);border-color:rgba(255,107,117,.35)}
+  .btn-soft-red:hover{background:rgba(229,48,60,.24)}
+  .btn-done{background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.35);box-shadow:none}
+  .btn-busy{background:var(--glass);color:var(--ink-2);box-shadow:none}
+  .btn-link{background:none;border:0;padding:0;border-radius:0;cursor:pointer;font-family:inherit;font-weight:600}
+  .btn-link:hover{text-decoration:underline;transform:none}
+
+  /* badges, chips */
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:600;border:1px solid transparent;font-family:inherit}
+  .b-green{color:var(--green);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35)}
+  .b-amber{color:var(--amber);background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35)}
+  .b-red{color:var(--red-2);background:rgba(229,48,60,.14);border-color:rgba(255,107,117,.35)}
+  .b-white{color:var(--ink);background:rgba(255,255,255,.08);border-color:var(--line)}
+  button.badge{cursor:pointer;transition:.2s}
+  button.badge:hover{filter:brightness(1.25)}
+  .chip{background:var(--glass);border:1px solid var(--line);color:var(--ink-2);border-radius:999px;
+    transition:.2s;cursor:pointer;font-family:inherit}
+  .chip:hover{border-color:rgba(255,107,117,.55);color:#fff}
+
+  /* fields */
+  .field{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;color:var(--ink);
+    outline:none;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+  .field::placeholder{color:var(--ink-3)}
+  .field:focus{border-color:rgba(255,107,117,.65);box-shadow:0 0 0 3px rgba(229,48,60,.18)}
+  .field.ro{background:rgba(255,255,255,.05);cursor:not-allowed}
+  .field.emr{color:#d1fae5;border-color:rgba(52,211,153,.35)}
+  .field.is-loading{color:var(--ink-3)}
+  select.field option{background:#1a080c;color:var(--ink)}
+  input[type=date].field{color-scheme:dark}
+
+  /* segmented tab bar (manager) */
+  .seg{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:999px}
+  .tab-btn{border-radius:999px;color:var(--ink-2);font-weight:500;border:1px solid transparent;
+    transition:.25s;font-family:inherit;cursor:pointer}
+  .tab-btn:hover{color:#fff;background:var(--glass-2)}
+  .tab-btn.active{color:#fff;background:linear-gradient(180deg,#f04452,#c4202e);border-color:rgba(255,255,255,.25);
+    box-shadow:0 8px 24px rgba(229,48,60,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+
+  /* progress */
+  .bar{background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden}
+  .bar>div{border-radius:999px}
+  .f-red{background:linear-gradient(90deg,#ff6b75,#e5303c);box-shadow:0 0 12px rgba(229,48,60,.6)}
+  .f-amber{background:linear-gradient(90deg,#fde68a,#f59e0b);box-shadow:0 0 12px rgba(245,158,11,.5)}
+  .f-green{background:linear-gradient(90deg,#6ee7b7,#10b981);box-shadow:0 0 12px rgba(52,211,153,.5)}
+
+  /* alert boxes */
+  .alert-box{padding:14px;border-radius:18px;border:1px solid var(--line)}
+  .alert-red{background:rgba(229,48,60,.12);border-color:rgba(255,107,117,.4)}
+  .alert-amber{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.35)}
+  .alert-green{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.38)}
+  .alarm-banner{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.25);box-shadow:0 10px 30px rgba(229,48,60,.4)}
+  .alarm-banner.ok{background:linear-gradient(180deg,#3fe0a9,#0f9d6e);color:#032a1d;box-shadow:0 10px 30px rgba(52,211,153,.3)}
+
+  /* tables */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0}
+  .tbl thead th{background:rgba(255,255,255,.06);color:var(--ink-3);font-weight:600}
+  .tbl thead th:first-child{border-radius:14px 0 0 14px}
+  .tbl thead th:last-child{border-radius:0 14px 14px 0}
+  .tbl tbody tr{transition:background .2s}
+  .tbl tbody tr:hover{background:rgba(255,255,255,.04)}
+  .tbl tbody tr+tr td{border-top:1px solid var(--line)}
+
+  /* chat bubbles */
+  .bubble-user{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;border-radius:16px 4px 16px 16px;
+    box-shadow:0 6px 18px rgba(229,48,60,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+
+  /* motion */
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+  .tab-content,.rise{animation:rise .55s cubic-bezier(.2,.7,.2,1)}
+  .pop{animation:pop .35s cubic-bezier(.2,.7,.2,1)}
+  .alarm-flash{animation:alertGlow 1.2s infinite alternate}
+  @keyframes alertGlow{
+    0%{box-shadow:0 0 0 0 rgba(229,48,60,.7),0 30px 80px rgba(0,0,0,.45);border-color:rgba(255,107,117,.9)}
+    100%{box-shadow:0 0 40px 6px rgba(229,48,60,.25),0 30px 80px rgba(0,0,0,.45);border-color:rgba(255,107,117,.3)}}
+  .alarm-active{animation:alertFlash 1s infinite alternate}
+  @keyframes alertFlash{
+    0%{background-color:rgba(229,48,60,.20);border-color:rgba(255,107,117,.85)}
+    100%{background-color:rgba(229,48,60,.03);border-color:rgba(255,107,117,.2)}}
+  .pulse-alert{animation:pulse 1.5s infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(229,48,60,.45)}
+    70%{box-shadow:0 0 0 10px rgba(229,48,60,0)}
+    100%{box-shadow:0 0 0 0 rgba(229,48,60,0)}}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+
   </style>
 </head>
-<body class="bg-[#091519] text-slate-100 min-h-screen flex flex-col selection:bg-[#5AA7A7] selection:text-white">
+<body class="min-h-screen flex flex-col">
+
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
 
   <!-- EMERGENCY BROADCAST BANNER -->
-  <div id="globalAlarmBanner" class="hidden bg-red-600 text-white py-2.5 px-4 text-center font-bold text-xs uppercase tracking-wide flex justify-between items-center z-50 shadow-lg">
+  <div id="globalAlarmBanner" class="hidden alarm-banner relative py-2.5 px-4 text-center font-bold text-xs uppercase tracking-wide flex justify-between items-center z-50">
     <div class="flex items-center gap-2 mx-auto">
       <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
       <span id="globalAlarmText">URGENT BROADCAST: EMERGENCY DEPARTMENT EXCEEDING SAFE CAPACITY</span>
     </div>
-    <button onclick="dismissGlobalAlarm()" class="text-white hover:text-slate-200 text-xs underline">Dismiss</button>
+    <button onclick="dismissGlobalAlarm()" class="text-xs underline" style="color:inherit">Dismiss</button>
   </div>
 
   <!-- Header Navigation -->
-  <header class="border-b border-[#183B44] bg-[#0A191E]/95 backdrop-blur sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col xl:flex-row justify-between items-center gap-4">
+  <header class="sticky top-0 z-40 px-3 pt-3">
+    <div class="max-w-7xl mx-auto nav-glass px-4 py-3 flex flex-col xl:flex-row justify-between items-center gap-4">
       <div class="flex items-center space-x-3">
-        <div class="h-11 w-11 bg-[#0E2127] border border-[#183B44] rounded-xl overflow-hidden flex items-center justify-center p-1.5 shadow-inner">
-          <i class="fa-solid fa-heart-pulse text-2xl text-[#5AA7A7]"></i>
+        <div class="h-11 w-11 rounded-xl mark">
+          <i class="fa-solid fa-heart-pulse text-2xl"></i>
         </div>
         <div>
-          <h1 class="text-lg font-bold text-white flex items-center gap-2">
-            SRM Global Hospitals
-            <span class="text-[10px] font-bold px-2.5 py-0.5 bg-[#34D399]/15 border border-[#34D399]/40 text-[#34D399] rounded-full tracking-wider flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></span>
+          <h1 class="text-lg font-bold c-ink flex items-center gap-2 flex-wrap">
+            SRM Prime, Ramapuram
+            <span class="badge b-green text-[10px] font-bold tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               MEDFLOW ACTIVE
             </span>
           </h1>
-          <p class="text-xs text-[#34D399]/70"><i>live your life</i></p>
+          <p class="text-xs c-green" style="opacity:.75"><i>live your life</i></p>
         </div>
       </div>
 
       <!-- Navigation Tabs -->
-      <nav class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1 bg-[#060F12] p-1.5 rounded-xl border border-[#183B44] text-[11px] sm:text-xs">
-        <button onclick="switchTab('tab1')" id="nav-tab1" class="tab-btn px-2.5 py-2 rounded-lg font-medium transition-all bg-[#5AA7A7] text-white shadow-md shadow-[#5AA7A7]/30 flex items-center">
-          <i class="fa-solid fa-hospital-user mr-1.5 text-[#F59E0B]"></i> 1. Overview
+      <nav class="seg flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1 p-1.5 text-[11px] sm:text-xs max-w-full">
+        <button onclick="switchTab('tab1')" id="nav-tab1" class="tab-btn active px-3 py-2 flex items-center">
+          <i class="fa-solid fa-hospital-user mr-1.5 c-amber"></i> 1. Overview
         </button>
-        <button onclick="switchTab('tab2')" id="nav-tab2" class="tab-btn px-2.5 py-2 rounded-lg font-medium text-slate-300 hover:text-white transition-all flex items-center">
-          <i class="fa-solid fa-sliders mr-1.5 text-[#34D399]"></i> 2. Shift Planner
+        <button onclick="switchTab('tab2')" id="nav-tab2" class="tab-btn px-3 py-2 flex items-center">
+          <i class="fa-solid fa-sliders mr-1.5 c-green"></i> 2. Shift Planner
         </button>
-        <button onclick="switchTab('tab3')" id="nav-tab3" class="tab-btn px-2.5 py-2 rounded-lg font-medium text-slate-300 hover:text-white transition-all flex items-center">
-          <i class="fa-solid fa-heart-circle-bolt mr-1.5 text-[#BAC94A]"></i> 3. Patient Beds
+        <button onclick="switchTab('tab3')" id="nav-tab3" class="tab-btn px-3 py-2 flex items-center">
+          <i class="fa-solid fa-heart-circle-bolt mr-1.5 c-green"></i> 3. Patient Beds
         </button>
-        <button onclick="switchTab('tab4')" id="nav-tab4" class="tab-btn px-2.5 py-2 rounded-lg font-medium text-slate-300 hover:text-white transition-all relative flex items-center">
-          <i class="fa-solid fa-bell mr-1.5 text-red-400"></i> 4. Alerts
+        <button onclick="switchTab('tab4')" id="nav-tab4" class="tab-btn px-3 py-2 relative flex items-center">
+          <i class="fa-solid fa-bell mr-1.5 c-red"></i> 4. Alerts
           <span id="alarmBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">!</span>
         </button>
-        <button onclick="switchTab('tab5')" id="nav-tab5" class="tab-btn px-2.5 py-2 rounded-lg font-medium text-slate-300 hover:text-white transition-all flex items-center">
-          <i class="fa-solid fa-calendar-check mr-1.5 text-[#6C8CBF]"></i> 5. Appointments
+        <button onclick="switchTab('tab5')" id="nav-tab5" class="tab-btn px-3 py-2 flex items-center">
+          <i class="fa-solid fa-calendar-check mr-1.5 c-2"></i> 5. Appointments
         </button>
       </nav>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 pb-20">
+  <main class="layer flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 pb-20">
 
     <!-- TAB 1: OVERVIEW -->
     <section id="tab1" class="tab-content space-y-6">
-      <div class="bg-[#0E2127]/70 border border-[#183B44] rounded-2xl p-6 relative overflow-hidden">
+      <div class="glass p-6 relative overflow-hidden">
         <div class="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
           <div class="flex items-center space-x-5">
-            <div class="w-20 h-20 bg-[#071317] border border-[#183B44] rounded-2xl flex items-center justify-center p-2.5 shadow-inner">
-              <i class="fa-solid fa-square-h text-3xl text-[#5AA7A7]"></i>
+            <div class="w-20 h-20 rounded-2xl mark">
+              <i class="fa-solid fa-square-h text-3xl"></i>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white tracking-wide">SRM Global Hospitals</h2>
-              <p class="text-xs text-slate-300 mt-1"><i class="fa-solid fa-location-dot text-[#F59E0B] mr-1"></i> SRM Nagar, Kattankulathur, Tamil Nadu</p>
+              <h2 class="text-2xl font-bold c-ink tracking-wide">SRM Prime, Ramapuram</h2>
+              <p class="text-xs c-2 mt-1"><i class="fa-solid fa-location-dot c-amber mr-1"></i> Ramapuram, Chennai, Tamil Nadu</p>
               <div class="flex gap-2 mt-3 flex-wrap">
-                <span class="text-[11px] bg-[#071317] text-slate-300 border border-[#183B44] px-2.5 py-0.5 rounded-full">24/7 Emergency Care</span>
-                <span class="text-[11px] bg-[#5AA7A7]/15 text-[#5AA7A7] border border-[#5AA7A7]/30 px-2.5 py-0.5 rounded-full font-medium">MedFlow Automated Operations</span>
-                <span class="text-[11px] bg-[#6C8CBF]/15 text-[#6C8CBF] border border-[#6C8CBF]/30 px-2.5 py-0.5 rounded-full">NABH Certified</span>
+                <span class="badge b-white text-[11px] font-medium">24/7 Emergency Care</span>
+                <span class="badge b-red text-[11px]">MedFlow Automated Operations</span>
+                <span class="badge b-white text-[11px] font-medium">NABH Certified</span>
               </div>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4 w-full md:w-auto text-center border-t md:border-t-0 md:border-l border-[#183B44] pt-4 md:pt-0 md:pl-6">
-            <div class="bg-[#071317] p-3 rounded-xl border border-[#183B44]">
-              <div class="text-xs text-slate-400 font-medium">Total Operational Beds</div>
-              <div class="text-xl font-bold text-white mt-0.5">250 Beds</div>
+          <div class="grid grid-cols-2 gap-4 w-full md:w-auto text-center sep-t md:border-t-0 md:border-l md:border-white/15 pt-4 md:pt-0 md:pl-6">
+            <div class="well p-3">
+              <div class="text-xs c-3 font-medium">Total Operational Beds</div>
+              <div class="text-xl font-bold c-ink mt-0.5">250 Beds</div>
             </div>
-            <div class="bg-[#071317] p-3 rounded-xl border border-[#183B44]">
-              <div class="text-xs text-slate-400 font-medium">Active Departments</div>
-              <div class="text-xl font-bold text-[#34D399] mt-0.5">12 Wards</div>
+            <div class="well p-3">
+              <div class="text-xs c-3 font-medium">Active Departments</div>
+              <div class="text-xl font-bold c-green mt-0.5">12 Wards</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-3">
+        <div class="glass-sm p-5 space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2"><i class="fa-solid fa-truck-medical text-red-400"></i> Emergency Department</h3>
-            <span class="text-xs font-bold text-red-400">92% Full</span>
+            <h3 class="font-semibold c-ink text-sm flex items-center gap-2"><i class="fa-solid fa-truck-medical c-red"></i> Emergency Department</h3>
+            <span class="text-xs font-bold c-red">92% Full</span>
           </div>
-          <div class="w-full bg-[#071317] rounded-full h-2"><div class="bg-red-500 h-2 rounded-full" style="width: 92%"></div></div>
-          <p class="text-xs text-slate-400">Available: 4 Beds | In Intake Queue: 18 Patients</p>
+          <div class="bar h-2"><div class="f-red h-2" style="width: 92%"></div></div>
+          <p class="text-xs c-3">Available: 4 Beds | In Intake Queue: 18 Patients</p>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-3">
+        <div class="glass-sm p-5 space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2"><i class="fa-solid fa-heart-pulse text-[#F59E0B]"></i> Intensive Care Unit (ICU)</h3>
-            <span class="text-xs font-bold text-[#F59E0B]">80% Full</span>
+            <h3 class="font-semibold c-ink text-sm flex items-center gap-2"><i class="fa-solid fa-heart-pulse c-amber"></i> Intensive Care Unit (ICU)</h3>
+            <span class="text-xs font-bold c-amber">80% Full</span>
           </div>
-          <div class="w-full bg-[#071317] rounded-full h-2"><div class="bg-[#F59E0B] h-2 rounded-full" style="width: 80%"></div></div>
-          <p class="text-xs text-slate-400">Available: 6 Beds | Intensive Monitoring Active</p>
+          <div class="bar h-2"><div class="f-amber h-2" style="width: 80%"></div></div>
+          <p class="text-xs c-3">Available: 6 Beds | Intensive Monitoring Active</p>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-3">
+        <div class="glass-sm p-5 space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2"><i class="fa-solid fa-bed text-[#BAC94A]"></i> General Inpatient Ward</h3>
-            <span class="text-xs font-bold text-[#BAC94A]">45% Full</span>
+            <h3 class="font-semibold c-ink text-sm flex items-center gap-2"><i class="fa-solid fa-bed c-green"></i> General Inpatient Ward</h3>
+            <span class="text-xs font-bold c-green">45% Full</span>
           </div>
-          <div class="w-full bg-[#071317] rounded-full h-2"><div class="bg-[#BAC94A] h-2 rounded-full" style="width: 45%"></div></div>
-          <p class="text-xs text-slate-400">Available: 82 Beds | Surplus Capacity Ready</p>
+          <div class="bar h-2"><div class="f-green h-2" style="width: 45%"></div></div>
+          <p class="text-xs c-3">Available: 82 Beds | Surplus Capacity Ready</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-circle-info text-[#5AA7A7]"></i> Core Operations Summary
+        <div class="glass-sm p-5">
+          <h3 class="text-sm font-bold c-ink mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info c-red"></i> Core Operations Summary
           </h3>
-          <ul class="space-y-2 text-xs text-slate-300">
-            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[#BAC94A]"></i> 24-Hour Acute Care & 6 Surgical Theatres</li>
-            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[#BAC94A]"></i> Continuous Laboratory & Pathology Diagnostics</li>
-            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[#BAC94A]"></i> Automated Pharmacy Dispensing & Inventory Tracking</li>
-            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[#BAC94A]"></i> Dynamic Doctor & Nurse Workload Balancing</li>
+          <ul class="space-y-2 text-xs c-2">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check c-green"></i> 24-Hour Acute Care & 6 Surgical Theatres</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check c-green"></i> Continuous Laboratory & Pathology Diagnostics</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check c-green"></i> Automated Pharmacy Dispensing & Inventory Tracking</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check c-green"></i> Dynamic Doctor & Nurse Workload Balancing</li>
           </ul>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-phone text-[#34D399]"></i> Department Desk Contacts
+        <div class="glass-sm p-5">
+          <h3 class="text-sm font-bold c-ink mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-phone c-green"></i> Department Desk Contacts
           </h3>
-          <div class="space-y-2 text-xs text-slate-300">
-            <div class="flex justify-between p-2 bg-[#071317] rounded-lg border border-[#183B44]"><span>Emergency Desk:</span><span class="font-mono text-[#34D399] font-bold">+91 (044) 4396 9999</span></div>
-            <div class="flex justify-between p-2 bg-[#071317] rounded-lg border border-[#183B44]"><span>Ambulance Control:</span><span class="font-mono text-[#34D399] font-bold">+91 (044) 4396 9911</span></div>
-            <div class="flex justify-between p-2 bg-[#071317] rounded-lg border border-[#183B44]"><span>ICU Control:</span><span class="font-mono text-[#34D399] font-bold">+91 (044) 4396 9944</span></div>
+          <div class="space-y-2 text-xs c-2">
+            <div class="flex justify-between p-2 well"><span>Emergency Desk:</span><span class="font-mono c-green font-bold">+91 (044) 4396 9999</span></div>
+            <div class="flex justify-between p-2 well"><span>Ambulance Control:</span><span class="font-mono c-green font-bold">+91 (044) 4396 9911</span></div>
+            <div class="flex justify-between p-2 well"><span>ICU Control:</span><span class="font-mono c-green font-bold">+91 (044) 4396 9944</span></div>
           </div>
         </div>
       </div>
@@ -167,141 +340,141 @@
 
     <!-- TAB 2: CAPACITY & SHIFT PLANNER -->
     <section id="tab2" class="tab-content hidden space-y-6">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0E2127]/70 border border-[#183B44] p-4 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-4">
         <div>
-          <h2 class="font-bold text-white text-base flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-[#5AA7A7]"></i> Capacity & Shift Workload Planner
+          <h2 class="font-bold c-ink text-base flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left c-red"></i> Capacity & Shift Workload Planner
           </h2>
-          <p class="text-xs text-slate-300">Manage shift duties, track doctor & nurse progress, and deploy resource adjustments.</p>
+          <p class="text-xs c-2">Manage shift duties, track doctor & nurse progress, and deploy resource adjustments.</p>
         </div>
 
-        <div class="flex items-center space-x-2 bg-[#060F12] p-1.5 rounded-xl border border-[#183B44]">
-          <label for="timeSim" class="text-xs text-slate-300 pl-2">Select Shift Time:</label>
-          <select id="timeSim" class="bg-[#0E2127] text-xs font-medium text-slate-200 border border-[#183B44] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#5AA7A7]">
+        <div class="flex items-center space-x-2 seg p-1.5">
+          <label for="timeSim" class="text-xs c-2 pl-2">Select Shift Time:</label>
+          <select id="timeSim" class="field text-xs font-medium rounded-full px-2.5 py-1.5">
             <option value="08:00">08:00 AM (Morning Shift)</option>
             <option value="12:00">12:00 PM (Midday Load)</option>
             <option value="17:00" selected>05:00 PM (Evening Rush)</option>
             <option value="22:00">10:00 PM (Night Inflow)</option>
           </select>
-          <button id="simBtn" class="bg-[#5AA7A7] hover:bg-[#499393] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+          <button id="simBtn" class="btn btn-red text-xs px-3 py-1.5 gap-1.5">
             <i class="fa-solid fa-play"></i> Preview Next 2h
           </button>
         </div>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex justify-between items-start text-slate-400">
+        <div class="glass-sm p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start c-3">
             <span class="text-xs font-semibold uppercase tracking-wider">Bed Availability</span>
-            <i class="fa-solid fa-bed text-[#5AA7A7]"></i>
+            <i class="fa-solid fa-bed c-red"></i>
           </div>
           <div class="mt-2">
-            <div class="text-2xl font-bold text-white"><span id="bedCount">12</span> / 100 free</div>
-            <div class="w-full bg-[#071317] rounded-full h-1.5 mt-2">
-              <div id="bedBar" class="bg-red-500 h-1.5 rounded-full" style="width: 88%"></div>
+            <div class="text-2xl font-bold c-ink"><span id="bedCount">12</span> / 100 free</div>
+            <div class="bar h-1.5 mt-2">
+              <div id="bedBar" class="f-red h-1.5" style="width: 88%"></div>
             </div>
           </div>
-          <span id="bedStatus" class="text-[11px] text-red-400 mt-2 flex items-center gap-1">
+          <span id="bedStatus" class="text-[11px] c-red mt-2 flex items-center gap-1">
             <i class="fa-solid fa-triangle-exclamation"></i> Critical Capacity (&lt;15% Free)
           </span>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex justify-between items-start text-slate-400">
+        <div class="glass-sm p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start c-3">
             <span class="text-xs font-semibold uppercase tracking-wider">Shift Task Status</span>
-            <i class="fa-solid fa-list-check text-[#34D399]"></i>
+            <i class="fa-solid fa-list-check c-green"></i>
           </div>
           <div class="mt-2">
-            <div class="text-2xl font-bold text-white">
-              <span id="inProgressCount" class="text-[#F59E0B]">0</span> <span class="text-xs font-normal text-slate-400">Active</span> / 
-              <span id="completedCount" class="text-[#BAC94A]">0</span> <span class="text-xs font-normal text-slate-400">Done</span>
+            <div class="text-2xl font-bold c-ink">
+              <span id="inProgressCount" class="c-amber">0</span> <span class="text-xs font-normal c-3">Active</span> /
+              <span id="completedCount" class="c-green">0</span> <span class="text-xs font-normal c-3">Done</span>
             </div>
-            <span id="totalPersonnelBadge" class="text-xs font-medium text-slate-300 mt-1 inline-block">0 Personnel Assigned</span>
+            <span id="totalPersonnelBadge" class="text-xs font-medium c-2 mt-1 inline-block">0 Personnel Assigned</span>
           </div>
-          <span id="taskLiveState" class="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
+          <span id="taskLiveState" class="text-[11px] c-3 mt-2 flex items-center gap-1">
             <i class="fa-solid fa-pause"></i> Waiting for Allocation
           </span>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex justify-between items-start text-slate-400">
+        <div class="glass-sm p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start c-3">
             <span class="text-xs font-semibold uppercase tracking-wider">Staff On Duty</span>
-            <i class="fa-solid fa-user-doctor text-[#6C8CBF]"></i>
+            <i class="fa-solid fa-user-doctor c-2"></i>
           </div>
           <div class="mt-2">
-            <div class="text-2xl font-bold text-white"><span id="staffCount">8</span> Docs / <span id="nurseCount">24</span> Nurses</div>
-            <div class="text-xs text-[#F59E0B] mt-1 font-medium">High Workload on Shift</div>
+            <div class="text-2xl font-bold c-ink"><span id="staffCount">8</span> Docs / <span id="nurseCount">24</span> Nurses</div>
+            <div class="text-xs c-amber mt-1 font-medium">High Workload on Shift</div>
           </div>
-          <span class="text-[11px] text-[#6C8CBF] mt-2">Avg Active Shift: 6.2 hours</span>
+          <span class="text-[11px] c-2 mt-2">Avg Active Shift: 6.2 hours</span>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex justify-between items-start text-slate-400">
+        <div class="glass-sm p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start c-3">
             <span class="text-xs font-semibold uppercase tracking-wider">Average Wait Time</span>
-            <i class="fa-solid fa-clock text-[#5AA7A7]"></i>
+            <i class="fa-solid fa-clock c-red"></i>
           </div>
           <div class="mt-2">
-            <div class="text-2xl font-bold text-white" id="waitTime">42 min</div>
-            <div class="text-xs text-slate-400 mt-1">Standard Target: &lt; 20 min</div>
+            <div class="text-2xl font-bold c-ink" id="waitTime">42 min</div>
+            <div class="text-xs c-3 mt-1">Standard Target: &lt; 20 min</div>
           </div>
-          <span id="waitTimeImpact" class="text-[11px] text-[#34D399] mt-2">Reduced to 24 min after transfer</span>
+          <span id="waitTimeImpact" class="text-[11px] c-green mt-2">Reduced to 24 min after transfer</span>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
-          <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#183B44] pb-3">
+          <div class="glass p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sep pb-3">
               <div>
-                <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2">
-                  <i class="fa-solid fa-user-doctor text-[#5AA7A7]"></i> Active Staff Duty & Task Status Roster
+                <h3 class="font-semibold c-ink text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-user-doctor c-red"></i> Active Staff Duty & Task Status Roster
                 </h3>
-                <p class="text-xs text-slate-400">Assigned doctors and nurses, work instructions, and real-time execution status</p>
+                <p class="text-xs c-3">Assigned doctors and nurses, work instructions, and real-time execution status</p>
               </div>
               <div class="flex items-center gap-2">
-                <button id="clearRosterBtn" onclick="clearStaffRoster()" class="hidden text-[11px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5">
+                <button id="clearRosterBtn" onclick="clearStaffRoster()" class="hidden btn btn-soft-red text-[11px] px-2.5 py-1 gap-1.5">
                   <i class="fa-solid fa-trash-can text-[10px]"></i> Clear Roster
                 </button>
-                <span class="text-[11px] bg-[#071317] text-slate-300 border border-[#183B44] px-2.5 py-1 rounded-lg">
+                <span class="badge b-white text-[11px] font-medium">
                   Click status badge to toggle
                 </span>
               </div>
             </div>
 
             <div class="overflow-x-auto">
-              <table class="w-full text-xs text-left text-slate-300">
-                <thead class="text-[11px] text-slate-400 uppercase bg-[#071317]">
+              <table class="tbl text-xs text-left c-2">
+                <thead class="text-[11px] uppercase">
                   <tr>
-                    <th class="p-3 rounded-l-xl">Staff Name</th>
+                    <th class="p-3">Staff Name</th>
                     <th class="p-3">Role</th>
                     <th class="p-3">Assigned Unit</th>
                     <th class="p-3">Assigned Duty / Task</th>
                     <th class="p-3">Active Shift</th>
-                    <th class="p-3 rounded-r-xl">Task Status</th>
+                    <th class="p-3">Task Status</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-[#183B44]" id="staffAssignmentsBody"></tbody>
+                <tbody id="staffAssignmentsBody"></tbody>
               </table>
             </div>
           </div>
         </div>
 
         <div class="space-y-6">
-          <div class="bg-gradient-to-b from-[#0E2127] to-[#071317] border border-[#183B44] rounded-2xl p-5 flex flex-col justify-between">
+          <div class="glass p-5 flex flex-col justify-between">
             <div>
-              <div class="flex items-center justify-between border-b border-[#183B44] pb-3 mb-4">
-                <span class="text-xs font-bold tracking-wide uppercase text-[#34D399] flex items-center gap-1.5 tracking-wider">
+              <div class="flex items-center justify-between sep pb-3 mb-4">
+                <span class="text-xs font-bold uppercase c-green flex items-center gap-1.5 tracking-wider">
                   <i class="fa-solid fa-list-check"></i> Action Recommendations
                 </span>
-                <span class="text-[10px] bg-[#5AA7A7]/20 text-[#34D399] border border-[#5AA7A7]/40 px-2 py-0.5 rounded">Smart Action Plan</span>
+                <span class="badge b-green text-[10px]">Smart Action Plan</span>
               </div>
 
-              <div id="alertBanner" class="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl mb-4 pulse-alert">
+              <div id="alertBanner" class="alert-box alert-red mb-4 pulse-alert">
                 <div class="flex items-start gap-2.5">
-                  <i class="fa-solid fa-circle-exclamation text-red-400 mt-0.5"></i>
+                  <i class="fa-solid fa-circle-exclamation c-red mt-0.5"></i>
                   <div>
-                    <h3 class="text-xs font-bold text-red-300 uppercase tracking-wide" id="alertTitle">Emergency Overload Warning</h3>
-                    <p class="text-xs text-slate-300 mt-0.5" id="alertDesc">Critical bed shortage expected between 5:00 PM – 7:00 PM.</p>
+                    <h3 class="text-xs font-bold c-red uppercase tracking-wide" id="alertTitle">Emergency Overload Warning</h3>
+                    <p class="text-xs c-2 mt-0.5" id="alertDesc">Critical bed shortage expected between 5:00 PM – 7:00 PM.</p>
                   </div>
                 </div>
               </div>
@@ -309,9 +482,9 @@
               <div class="space-y-2.5" id="recommendationList"></div>
             </div>
 
-            <div class="mt-6 pt-4 border-t border-[#183B44]">
-              <button id="applyOptBtn" class="w-full bg-[#5AA7A7] hover:bg-[#499393] text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-[#5AA7A7]/25 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-check-double text-[#F59E0B]"></i> Apply Shift Adjustments & Alert Doctor
+            <div class="mt-6 pt-4 sep-t">
+              <button id="applyOptBtn" class="btn btn-red btn-wide w-full font-semibold text-xs py-3 gap-2">
+                <i class="fa-solid fa-check-double"></i> Apply Shift Adjustments & Alert Doctor
               </button>
             </div>
           </div>
@@ -321,43 +494,43 @@
 
     <!-- TAB 3: PATIENT PRIORITY & BEDS -->
     <section id="tab3" class="tab-content hidden space-y-6">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0E2127]/60 border border-[#183B44] p-4 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-4">
         <div>
-          <h2 class="font-bold text-white text-base">Patient Severity & Discharge Status</h2>
-          <p class="text-xs text-slate-300">Prioritize care: Critical Attention, Regular Monitoring, or Ready for Home Discharge</p>
+          <h2 class="font-bold c-ink text-base">Patient Severity & Discharge Status</h2>
+          <p class="text-xs c-2">Prioritize care: Critical Attention, Regular Monitoring, or Ready for Home Discharge</p>
         </div>
-        <button onclick="openPatientModal()" class="bg-[#5AA7A7] hover:bg-[#499393] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-md shadow-[#5AA7A7]/20">
+        <button onclick="openPatientModal()" class="btn btn-red text-xs px-4 py-2 gap-2">
           <i class="fa-solid fa-user-plus"></i> Register New Patient
         </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-[#0E2127]/60 border border-red-500/30 rounded-2xl p-4 space-y-3">
-          <div class="flex justify-between items-center pb-2 border-b border-red-500/20">
-            <span class="font-bold text-xs uppercase text-red-400 flex items-center gap-2">
+        <div class="glass tone-red p-4 space-y-3">
+          <div class="flex justify-between items-center pb-2 sep">
+            <span class="font-bold text-xs uppercase c-red flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> Critical Priority (Immediate Care)
             </span>
-            <span class="text-xs font-bold bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full" id="criticalCount">0</span>
+            <span class="badge b-red text-xs font-bold" id="criticalCount">0</span>
           </div>
           <div id="criticalPatientsList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#F59E0B]/30 rounded-2xl p-4 space-y-3">
-          <div class="flex justify-between items-center pb-2 border-b border-[#F59E0B]/20">
-            <span class="font-bold text-xs uppercase text-[#F59E0B] flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B]"></span> Under Observation (Monitored)
+        <div class="glass tone-amber p-4 space-y-3">
+          <div class="flex justify-between items-center pb-2 sep">
+            <span class="font-bold text-xs uppercase c-amber flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Under Observation (Monitored)
             </span>
-            <span class="text-xs font-bold bg-[#F59E0B]/20 text-[#F59E0B] px-2 py-0.5 rounded-full" id="assistanceCount">0</span>
+            <span class="badge b-amber text-xs font-bold" id="assistanceCount">0</span>
           </div>
           <div id="assistancePatientsList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#34D399]/30 rounded-2xl p-4 space-y-3">
-          <div class="flex justify-between items-center pb-2 border-b border-[#34D399]/20">
-            <span class="font-bold text-xs uppercase text-[#34D399] flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-[#34D399]"></span> Stable (Eligible for Home Care)
+        <div class="glass tone-green p-4 space-y-3">
+          <div class="flex justify-between items-center pb-2 sep">
+            <span class="font-bold text-xs uppercase c-green flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Stable (Eligible for Home Care)
             </span>
-            <span class="text-xs font-bold bg-[#34D399]/20 text-[#34D399] px-2 py-0.5 rounded-full" id="stableCount">0</span>
+            <span class="badge b-green text-xs font-bold" id="stableCount">0</span>
           </div>
           <div id="stablePatientsList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
         </div>
@@ -366,19 +539,19 @@
 
     <!-- TAB 4: DEPARTMENT ALERTS -->
     <section id="tab4" class="tab-content hidden space-y-6">
-      <div class="bg-[#0E2127]/70 border border-[#183B44] rounded-2xl p-6 relative">
+      <div class="glass p-6 relative">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-bullhorn text-red-500"></i> Department Overload Alerts & Staff Dispatch
+            <h2 class="text-lg font-bold c-ink flex items-center gap-2">
+              <i class="fa-solid fa-bullhorn c-red"></i> Department Overload Alerts & Staff Dispatch
             </h2>
-            <p class="text-xs text-slate-300 mt-1">Sends immediate mobile notifications to on-duty staff to balance ward coverage.</p>
+            <p class="text-xs c-2 mt-1">Sends immediate mobile notifications to on-duty staff to balance ward coverage.</p>
           </div>
           <div class="flex gap-2">
-            <button onclick="triggerEmergencyAlert('ER Capacity Alert', 'High influx in Emergency Room. Transferring available nurses from General Ward.')" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-red-900/40">
+            <button onclick="triggerEmergencyAlert('ER Capacity Alert', 'High influx in Emergency Room. Transferring available nurses from General Ward.')" class="btn btn-red text-xs font-bold px-4 py-2.5 gap-2">
               <i class="fa-solid fa-bell font-bold"></i> Send Emergency Broadcast
             </button>
-            <button onclick="silenceAlarms()" class="bg-[#071317] hover:bg-[#102730] text-slate-300 text-xs font-medium px-3 py-2.5 rounded-xl transition-all border border-[#183B44]">
+            <button onclick="silenceAlarms()" class="btn btn-ghost c-2 text-xs font-medium px-3 py-2.5">
               <i class="fa-solid fa-bell-slash"></i> Clear Alerts
             </button>
           </div>
@@ -386,22 +559,22 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-4">
-          <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-list-ul text-red-400"></i> Active Department Broadcast Feed
+        <div class="lg:col-span-2 glass-sm p-5 space-y-4">
+          <h3 class="font-semibold c-ink text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-ul c-red"></i> Active Department Broadcast Feed
           </h3>
           <div id="alarmsFeed" class="space-y-3"></div>
         </div>
 
-        <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-4">
-          <div class="border-b border-[#183B44] pb-3">
-            <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-arrows-split-up-and-left text-[#5AA7A7]"></i> Staff Reassignment Plan
+        <div class="glass-sm p-5 space-y-4">
+          <div class="sep pb-3">
+            <h3 class="font-semibold c-ink text-sm flex items-center gap-2">
+              <i class="fa-solid fa-arrows-split-up-and-left c-red"></i> Staff Reassignment Plan
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">Identifies lower-demand wards and moves staff to overloaded units.</p>
+            <p class="text-xs c-3 mt-0.5">Identifies lower-demand wards and moves staff to overloaded units.</p>
           </div>
           <div id="reallocationRecommendations" class="space-y-3 text-xs"></div>
-          <button id="execReallocationBtn" onclick="executeReallocation()" class="w-full bg-[#BAC94A] hover:bg-[#a5b43d] text-slate-950 font-bold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#BAC94A]/25">
+          <button id="execReallocationBtn" onclick="executeReallocation()" class="btn btn-white btn-wide w-full font-bold text-xs py-3 gap-2">
             <i class="fa-solid fa-people-arrows"></i> Confirm Staff Transfer
           </button>
         </div>
@@ -410,42 +583,42 @@
 
     <!-- TAB 5: APPOINTMENTS DESK -->
     <section id="tab5" class="tab-content hidden space-y-6">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0E2127]/70 border border-[#183B44] p-4 rounded-2xl">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-4">
         <div>
-          <h2 class="font-bold text-white text-base flex items-center gap-2">
-            <i class="fa-solid fa-calendar-check text-[#5AA7A7]"></i> Global Appointment Desk
+          <h2 class="font-bold c-ink text-base flex items-center gap-2">
+            <i class="fa-solid fa-calendar-check c-red"></i> Global Appointment Desk
           </h2>
-          <p class="text-xs text-slate-300">Intelligent clinic scheduling: automatically routes symptoms to the right specialist doctor & department.</p>
+          <p class="text-xs c-2">Intelligent clinic scheduling: automatically routes symptoms to the right specialist doctor & department.</p>
         </div>
-        <button onclick="openAppointmentModal()" class="bg-[#5AA7A7] hover:bg-[#499393] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-md shadow-[#5AA7A7]/20">
+        <button onclick="openAppointmentModal()" class="btn btn-red text-xs px-4 py-2 gap-2">
           <i class="fa-solid fa-calendar-plus"></i> Book Appointment (AI Routed)
         </button>
       </div>
 
-      <div class="bg-[#0E2127]/60 border border-[#183B44] rounded-2xl p-5 space-y-4">
-        <div class="flex justify-between items-center border-b border-[#183B44] pb-2">
-          <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-list text-[#6C8CBF]"></i> All Scheduled Consultations
+      <div class="glass-sm p-5 space-y-4">
+        <div class="flex justify-between items-center sep pb-2">
+          <h3 class="font-semibold c-ink text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list c-2"></i> All Scheduled Consultations
           </h3>
-          <span class="text-[11px] text-slate-400 bg-[#071317] border border-[#183B44] px-2.5 py-0.5 rounded-full">
-            <i class="fa-solid fa-robot text-[#34D399] mr-1"></i> Auto-Matching Active
+          <span class="badge b-white text-[11px] font-medium">
+            <i class="fa-solid fa-robot c-green"></i> Auto-Matching Active
           </span>
         </div>
-        
+
         <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left text-slate-300">
-            <thead class="text-[11px] text-slate-400 uppercase bg-[#071317]">
+          <table class="tbl text-xs text-left c-2">
+            <thead class="text-[11px] uppercase">
               <tr>
-                <th class="p-3 rounded-l-xl">Patient Name</th>
+                <th class="p-3">Patient Name</th>
                 <th class="p-3">Assigned Specialist</th>
                 <th class="p-3">Department</th>
                 <th class="p-3">Auto-Scheduled Date</th>
                 <th class="p-3">Clinical Reason</th>
                 <th class="p-3">Status</th>
-                <th class="p-3 rounded-r-xl text-right">Action</th>
+                <th class="p-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#183B44]" id="globalAppointmentsBody"></tbody>
+            <tbody id="globalAppointmentsBody"></tbody>
           </table>
         </div>
       </div>
@@ -456,22 +629,22 @@
   <!-- FLOATING CHATBOT WIDGET: MEDFLOW COPILOT -->
   <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
     <!-- Chat Window Container -->
-    <div id="copilotChatWindow" class="hidden w-80 sm:w-96 h-[460px] bg-[#0E2127] border border-[#183B44] rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-3">
+    <div id="copilotChatWindow" class="hidden glass glass-dark w-80 sm:w-96 h-[460px] flex flex-col overflow-hidden mb-3 pop">
       <!-- Chat Header -->
-      <div class="bg-[#071317] border-b border-[#183B44] p-3 flex justify-between items-center">
+      <div class="sep p-3 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-[#5AA7A7]/20 border border-[#5AA7A7]/40 flex items-center justify-center text-[#5AA7A7] text-sm font-bold">
+          <div class="w-8 h-8 rounded-lg mark text-sm font-bold">
             <i class="fa-solid fa-robot"></i>
           </div>
           <div>
-            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+            <h4 class="text-xs font-bold c-ink flex items-center gap-1.5">
               MedFlow Copilot
-              <span class="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </h4>
-            <p class="text-[10px] text-slate-400">Hospital Operations AI Assistant</p>
+            <p class="text-[10px] c-3">Hospital Operations AI Assistant</p>
           </div>
         </div>
-        <button onclick="toggleCopilotChat()" class="text-slate-400 hover:text-white text-xs p-1">
+        <button onclick="toggleCopilotChat()" class="c-3 hover-ink text-xs p-1">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -479,59 +652,59 @@
       <!-- Messages Area -->
       <div id="copilotMessages" class="flex-grow p-3.5 space-y-3 overflow-y-auto text-xs">
         <div class="flex items-start gap-2">
-          <div class="w-6 h-6 rounded-md bg-[#5AA7A7]/20 text-[#5AA7A7] flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-md mark text-[10px] shrink-0 mt-0.5">
             <i class="fa-solid fa-robot"></i>
           </div>
-          <div class="bg-[#071317] border border-[#183B44] p-2.5 rounded-xl text-slate-200 max-w-[85%] leading-relaxed">
+          <div class="item p-2.5 c-ink max-w-[85%] leading-relaxed">
             Hello! I am your <strong>MedFlow Operations Copilot</strong>. Ask me about live bed capacity, doctor duties, emergency protocols, or staff transfers.
           </div>
         </div>
       </div>
 
       <!-- Quick Action Chips -->
-      <div class="p-2 border-t border-[#183B44]/60 bg-[#071317]/50 flex gap-1.5 overflow-x-auto text-[10px]">
-        <button onclick="sendQuickPrompt('What is our current bed capacity?')" class="bg-[#0E2127] border border-[#183B44] text-slate-300 px-2 py-1 rounded-md hover:border-[#5AA7A7] shrink-0 transition-colors">🛏️ Bed Capacity</button>
-        <button onclick="sendQuickPrompt('Who is the on-duty emergency doctor?')" class="bg-[#0E2127] border border-[#183B44] text-slate-300 px-2 py-1 rounded-md hover:border-[#5AA7A7] shrink-0 transition-colors">👨‍⚕️ On-Duty Lead</button>
-        <button onclick="sendQuickPrompt('What are the active hospital emergency desks?')" class="bg-[#0E2127] border border-[#183B44] text-slate-300 px-2 py-1 rounded-md hover:border-[#5AA7A7] shrink-0 transition-colors">📞 Emergency Desks</button>
+      <div class="p-2 sep-t flex gap-1.5 overflow-x-auto text-[10px]">
+        <button onclick="sendQuickPrompt('What is our current bed capacity?')" class="chip px-2.5 py-1 shrink-0">🛏️ Bed Capacity</button>
+        <button onclick="sendQuickPrompt('Who is the on-duty emergency doctor?')" class="chip px-2.5 py-1 shrink-0">👨‍⚕️ On-Duty Lead</button>
+        <button onclick="sendQuickPrompt('What are the active hospital emergency desks?')" class="chip px-2.5 py-1 shrink-0">📞 Emergency Desks</button>
       </div>
 
       <!-- Input Bar -->
-      <div class="p-2.5 bg-[#071317] border-t border-[#183B44] flex items-center gap-2">
-        <input type="text" id="copilotInput" onkeydown="handleCopilotKey(event)" placeholder="Ask copilot about operations..." class="flex-grow bg-[#0E2127] border border-[#183B44] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#5AA7A7]">
-        <button onclick="sendCopilotMessage()" class="bg-[#5AA7A7] hover:bg-[#499393] text-white text-xs w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0">
+      <div class="p-2.5 sep-t flex items-center gap-2">
+        <input type="text" id="copilotInput" onkeydown="handleCopilotKey(event)" placeholder="Ask copilot about operations..." class="field flex-grow rounded-full px-3.5 py-2 text-xs">
+        <button onclick="sendCopilotMessage()" class="btn btn-red text-xs w-8 h-8 shrink-0">
           <i class="fa-solid fa-paper-plane text-[11px]"></i>
         </button>
       </div>
     </div>
 
     <!-- Floating Toggle Button -->
-    <button onclick="toggleCopilotChat()" class="bg-[#5AA7A7] hover:bg-[#499393] text-white font-bold p-3.5 rounded-full shadow-2xl flex items-center gap-2 transition-transform hover:scale-105">
+    <button onclick="toggleCopilotChat()" class="btn btn-red font-bold p-3.5 gap-2 hover:scale-105">
       <i class="fa-solid fa-comment-dots text-lg"></i>
       <span class="text-xs font-semibold hidden sm:inline">Copilot AI</span>
     </button>
   </div>
 
   <!-- Patient Registration Modal -->
-  <div id="patientModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-    <div class="bg-[#0E2127] border border-[#183B44] rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-[#183B44] pb-3">
-        <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-user-plus text-[#5AA7A7] mr-2"></i>Register New Patient</h3>
-        <button onclick="closePatientModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+  <div id="patientModal" class="fixed inset-0 overlay hidden flex items-center justify-center z-50 p-4">
+    <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop">
+      <div class="flex justify-between items-center sep pb-3">
+        <h3 class="text-sm font-bold c-ink"><i class="fa-solid fa-user-plus c-red mr-2"></i>Register New Patient</h3>
+        <button onclick="closePatientModal()" class="c-3 hover-ink"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="patientForm" onsubmit="handlePatientSubmit(event)" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Patient Full Name</label>
-          <input type="text" id="pName" required placeholder="e.g. Rahul Sharma" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+          <label class="block c-3 mb-1">Patient Full Name</label>
+          <input type="text" id="pName" required placeholder="e.g. Rahul Sharma" class="field w-full p-2.5">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-slate-400 mb-1">Age</label>
-            <input type="number" id="pAge" required placeholder="45" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+            <label class="block c-3 mb-1">Age</label>
+            <input type="number" id="pAge" required placeholder="45" class="field w-full p-2.5">
           </div>
           <div>
-            <label class="block text-slate-400 mb-1">Assigned Ward</label>
-            <select id="pWard" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+            <label class="block c-3 mb-1">Assigned Ward</label>
+            <select id="pWard" class="field w-full p-2.5">
               <option value="Emergency Room">Emergency Room</option>
               <option value="ICU Ward A">ICU Ward A</option>
               <option value="General Ward B">General Ward B</option>
@@ -540,18 +713,18 @@
           </div>
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Patient Health Status</label>
-          <select id="pRisk" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+          <label class="block c-3 mb-1">Patient Health Status</label>
+          <select id="pRisk" class="field w-full p-2.5">
             <option value="critical">🔴 Critical Priority (Immediate Care)</option>
             <option value="assistance">🟡 Under Observation (Monitored)</option>
             <option value="stable">🟢 Stable (Eligible for Home Care)</option>
           </select>
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Primary Symptoms / Diagnosis</label>
-          <input type="text" id="pCondition" required placeholder="e.g. Acute Respiratory Distress" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+          <label class="block c-3 mb-1">Primary Symptoms / Diagnosis</label>
+          <input type="text" id="pCondition" required placeholder="e.g. Acute Respiratory Distress" class="field w-full p-2.5">
         </div>
-        <button type="submit" class="w-full bg-[#5AA7A7] hover:bg-[#499393] text-white font-bold p-2.5 rounded-xl transition-all mt-2 shadow-md shadow-[#5AA7A7]/25">
+        <button type="submit" class="btn btn-red btn-wide w-full font-bold p-2.5 mt-2">
           Save Patient Record
         </button>
       </form>
@@ -559,73 +732,73 @@
   </div>
 
   <!-- Appointment Modal -->
-  <div id="appointmentModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-    <div class="bg-[#0E2127] border border-[#183B44] rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-[#183B44] pb-3">
+  <div id="appointmentModal" class="fixed inset-0 overlay hidden flex items-center justify-center z-50 p-4">
+    <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center sep pb-3">
         <div>
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles text-[#34D399]"></i> Book New Appointment
+          <h3 class="text-sm font-bold c-ink flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles c-green"></i> Book New Appointment
           </h3>
-          <p class="text-[10px] text-slate-400">Doctor, department, and date are inferred automatically from visit reason</p>
+          <p class="text-[10px] c-3">Doctor, department, and date are inferred automatically from visit reason</p>
         </div>
-        <button onclick="closeAppointmentModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeAppointmentModal()" class="c-3 hover-ink"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="appointmentForm" onsubmit="handleAppointmentSubmit(event)" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Patient Full Name</label>
-          <input type="text" id="aptPatientName" required placeholder="e.g. Vikas Kumar" class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
+          <label class="block c-3 mb-1">Patient Full Name</label>
+          <input type="text" id="aptPatientName" required placeholder="e.g. Vikas Kumar" class="field w-full p-2.5">
         </div>
 
         <div>
-          <label class="block text-slate-400 mb-1">Reason for Visit / Symptoms <span class="text-[#34D399] font-semibold">(Type or click quick tag)</span></label>
-          <input type="text" id="aptReason" oninput="autoMatchAppointmentDetails(this.value)" required placeholder="e.g. Chest tightness, Knee fracture, Asthma review..." class="w-full bg-[#071317] border border-[#183B44] rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-[#5AA7A7]">
-          
+          <label class="block c-3 mb-1">Reason for Visit / Symptoms <span class="c-green font-semibold">(Type or click quick tag)</span></label>
+          <input type="text" id="aptReason" oninput="autoMatchAppointmentDetails(this.value)" required placeholder="e.g. Chest tightness, Knee fracture, Asthma review..." class="field w-full p-2.5">
+
           <div class="flex flex-wrap gap-1.5 mt-2">
-            <button type="button" onclick="selectQuickReason('Severe Chest Pain / Palpitation')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🫀 Chest Pain</button>
-            <button type="button" onclick="selectQuickReason('Asthma & Shortness of Breath')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🫁 Asthma</button>
-            <button type="button" onclick="selectQuickReason('Knee Joint Fracture / Sprain')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🦴 Bone Fracture</button>
-            <button type="button" onclick="selectQuickReason('Chronic Migraine & Dizziness')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🧠 Migraine</button>
-            <button type="button" onclick="selectQuickReason('Severe Gastric Acidity & Pain')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🔬 Gastric</button>
-            <button type="button" onclick="selectQuickReason('Routine Seasonal Fever Checkup')" class="text-[10px] bg-[#071317] hover:bg-[#183B44] text-slate-300 border border-[#183B44] px-2 py-0.5 rounded-full transition-colors">🩺 Fever/General</button>
+            <button type="button" onclick="selectQuickReason('Severe Chest Pain / Palpitation')" class="chip text-[10px] px-2.5 py-0.5">🫀 Chest Pain</button>
+            <button type="button" onclick="selectQuickReason('Asthma & Shortness of Breath')" class="chip text-[10px] px-2.5 py-0.5">🫁 Asthma</button>
+            <button type="button" onclick="selectQuickReason('Knee Joint Fracture / Sprain')" class="chip text-[10px] px-2.5 py-0.5">🦴 Bone Fracture</button>
+            <button type="button" onclick="selectQuickReason('Chronic Migraine & Dizziness')" class="chip text-[10px] px-2.5 py-0.5">🧠 Migraine</button>
+            <button type="button" onclick="selectQuickReason('Severe Gastric Acidity & Pain')" class="chip text-[10px] px-2.5 py-0.5">🔬 Gastric</button>
+            <button type="button" onclick="selectQuickReason('Routine Seasonal Fever Checkup')" class="chip text-[10px] px-2.5 py-0.5">🩺 Fever/General</button>
           </div>
         </div>
 
-        <div class="bg-[#071317] border border-[#34D399]/40 p-3 rounded-xl space-y-2.5">
+        <div class="well tone-green p-3 space-y-2.5" style="border-color:rgba(52,211,153,.4)">
           <div class="flex justify-between items-center">
-            <span class="text-[10px] font-bold uppercase text-[#34D399] tracking-wider flex items-center gap-1">
+            <span class="text-[10px] font-bold uppercase c-green tracking-wider flex items-center gap-1">
               <i class="fa-solid fa-microchip animate-pulse"></i> Auto-Assigned by MedFlow
             </span>
-            <span id="autoMatchBadge" class="text-[9px] bg-[#34D399]/20 text-[#34D399] px-2 py-0.5 rounded font-mono font-bold">READY</span>
+            <span id="autoMatchBadge" class="badge b-green text-[9px] font-mono font-bold py-0.5">READY</span>
           </div>
 
           <div>
-            <label class="block text-[10px] text-slate-400 mb-0.5">Assigned Specialist Doctor</label>
-            <input type="text" id="aptDoctor" readonly class="w-full bg-[#0A191E] border border-[#183B44] rounded-lg p-2 text-slate-200 font-semibold cursor-not-allowed">
+            <label class="block text-[10px] c-3 mb-0.5">Assigned Specialist Doctor</label>
+            <input type="text" id="aptDoctor" readonly class="field ro w-full p-2 font-semibold">
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-[10px] text-slate-400 mb-0.5">Clinical Department</label>
-              <input type="text" id="aptDept" readonly class="w-full bg-[#0A191E] border border-[#183B44] rounded-lg p-2 text-slate-200 font-medium cursor-not-allowed">
+              <label class="block text-[10px] c-3 mb-0.5">Clinical Department</label>
+              <input type="text" id="aptDept" readonly class="field ro w-full p-2 font-medium">
             </div>
             <div>
-              <label class="block text-[10px] text-slate-400 mb-0.5">Calculated Slot Date</label>
-              <input type="date" id="aptDate" required class="w-full bg-[#0A191E] border border-[#183B44] rounded-lg p-2 text-slate-200 font-mono">
+              <label class="block text-[10px] c-3 mb-0.5">Calculated Slot Date</label>
+              <input type="date" id="aptDate" required class="field w-full p-2 font-mono">
             </div>
           </div>
         </div>
 
-        <button type="submit" class="w-full bg-[#5AA7A7] hover:bg-[#499393] text-white font-bold p-3 rounded-xl transition-all mt-1 shadow-md shadow-[#5AA7A7]/25 flex items-center justify-center gap-2">
-          <i class="fa-solid fa-calendar-check text-[#F59E0B]"></i> Confirm & Broadcast Appointment
+        <button type="submit" class="btn btn-red btn-wide w-full font-bold p-3 mt-1 gap-2">
+          <i class="fa-solid fa-calendar-check"></i> Confirm & Broadcast Appointment
         </button>
       </form>
     </div>
   </div>
 
-  <footer class="border-t border-[#183B44] bg-[#071317] py-3 px-4 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 mt-auto gap-2">
-    <p>SRM Global Hospitals &bull; Operations & Resource Management System (Powered by MedFlow)</p>
-    <button onclick="resetAllDemoData()" class="text-[11px] text-red-400 hover:text-red-300 underline font-medium">
+  <footer class="layer foot-glass py-3 px-4 flex flex-col sm:flex-row justify-between items-center text-xs c-3 mt-auto gap-2">
+    <p>SRM Prime, Ramapuram &bull; Operations & Resource Management System (Powered by MedFlow)</p>
+    <button onclick="resetAllDemoData()" class="btn-link text-[11px] c-red font-medium" style="text-decoration:underline">
       <i class="fa-solid fa-rotate-left mr-1"></i>Reset Demo Data
     </button>
   </footer>
@@ -633,7 +806,7 @@
   <script>
     const SUPABASE_URL = "https://etydrijztimnucgmmkgm.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0eWRyaWp6dGltbnVjZ21ta2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzMxOTMsImV4cCI6MjEwNDgwOTE5M30.XqflZmClgHJx14U-NI-ragLiX60bkSK_HqR_i-JBeNE";
-    
+
     const syncChannel = new BroadcastChannel('medflow_hospital_sync');
     let supabaseClient = null;
     let globalRealtimeChannel = null;
@@ -754,23 +927,21 @@
     let activeTimers = [];
 
     const scenarios = {
-      "08:00": { beds: 45, doctors: 6, nurses: 16, waitTime: "18 min", optWaitTime: "12 min", alertTitle: "Normal Operations", alertDesc: "Patient load is within standard limits. No major delays expected.", alertClass: "bg-emerald-500/10 border-emerald-500/30", alertTextClass: "text-[#34D399]", bottlenecks: [ { name: "Diagnostic Laboratory", status: "Normal", level: "40% Load", icon: "fa-flask", color: "text-[#5AA7A7]" }, { name: "Emergency Beds", status: "Sufficient", level: "55% Free", icon: "fa-bed", color: "text-[#BAC94A]" } ], recommendations: [ { text: "Keep existing ward staffing schedules active.", icon: "fa-sliders" }, { text: "Prepare diagnostic trays for mid-morning shift.", icon: "fa-vial" } ] },
-      "12:00": { beds: 22, doctors: 5, nurses: 18, waitTime: "32 min", optWaitTime: "19 min", alertTitle: "Lab Processing Delay", alertDesc: "Diagnostic processing delays anticipated at 1:30 PM.", alertClass: "bg-[#F59E0B]/10 border-[#F59E0B]/30", alertTextClass: "text-[#F59E0B]", bottlenecks: [ { name: "Diagnostic Laboratory", status: "High Workload", level: "85% Load", icon: "fa-flask", color: "text-[#F59E0B]" }, { name: "Operation Theatre", status: "Normal", level: "60% Load", icon: "fa-heart-pulse", color: "text-[#6C8CBF]" } ], recommendations: [ { text: "Fast-track urgent blood analyses in Lab B.", icon: "fa-bolt" }, { text: "Schedule non-critical outpatient tests for afternoon.", icon: "fa-pause" } ] },
-      "17:00": { beds: 12, doctors: 8, nurses: 24, waitTime: "42 min", optWaitTime: "24 min", alertTitle: "Emergency Overload Warning", alertDesc: "Critical emergency bed shortage predicted between 5:00 PM – 7:00 PM.", alertClass: "bg-red-500/10 border-red-500/30 pulse-alert", alertTextClass: "text-red-300", bottlenecks: [ { name: "Emergency Department", status: "Critical", level: "92% Full", icon: "fa-truck-medical", color: "text-red-400" }, { name: "Shift Nurse Coverage", status: "High Demand", level: "Heavy Workload", icon: "fa-user-nurse", color: "text-[#F59E0B]" } ], recommendations: [ { text: "Discharge stable patients home with medication & monitoring kit.", icon: "fa-house-medical" }, { text: "Move Dr. Arvind Swaminathan to ER for emergency surge coverage.", icon: "fa-people-arrows" }, { text: "Reserve 5 step-down beds for incoming emergency admissions.", icon: "fa-bed" } ] },
-      "22:00": { beds: 18, doctors: 4, nurses: 12, waitTime: "28 min", optWaitTime: "16 min", alertTitle: "Night Staff Shortage", alertDesc: "Physician coverage dipping below recommended ratios for night shift.", alertClass: "bg-[#F59E0B]/10 border-[#F59E0B]/30", alertTextClass: "text-[#F59E0B]", bottlenecks: [ { name: "On-Call Doctors", status: "Limited", level: "4 Active", icon: "fa-user-doctor", color: "text-red-400" }, { name: "Ambulance Intake", status: "Moderate", level: "50% Capacity", icon: "fa-ambulance", color: "text-[#34D399]" } ], recommendations: [ { text: "Call in on-call physician for secondary coverage.", icon: "fa-phone" }, { text: "Route direct non-critical admissions to Ward 3.", icon: "fa-route" } ] }
+      "08:00": { beds: 45, doctors: 6, nurses: 16, waitTime: "18 min", optWaitTime: "12 min", alertTitle: "Normal Operations", alertDesc: "Patient load is within standard limits. No major delays expected.", alertClass: "alert-green", alertTextClass: "c-green", bottlenecks: [ { name: "Diagnostic Laboratory", status: "Normal", level: "40% Load", icon: "fa-flask", color: "c-red" }, { name: "Emergency Beds", status: "Sufficient", level: "55% Free", icon: "fa-bed", color: "c-green" } ], recommendations: [ { text: "Keep existing ward staffing schedules active.", icon: "fa-sliders" }, { text: "Prepare diagnostic trays for mid-morning shift.", icon: "fa-vial" } ] },
+      "12:00": { beds: 22, doctors: 5, nurses: 18, waitTime: "32 min", optWaitTime: "19 min", alertTitle: "Lab Processing Delay", alertDesc: "Diagnostic processing delays anticipated at 1:30 PM.", alertClass: "alert-amber", alertTextClass: "c-amber", bottlenecks: [ { name: "Diagnostic Laboratory", status: "High Workload", level: "85% Load", icon: "fa-flask", color: "c-amber" }, { name: "Operation Theatre", status: "Normal", level: "60% Load", icon: "fa-heart-pulse", color: "c-2" } ], recommendations: [ { text: "Fast-track urgent blood analyses in Lab B.", icon: "fa-bolt" }, { text: "Schedule non-critical outpatient tests for afternoon.", icon: "fa-pause" } ] },
+      "17:00": { beds: 12, doctors: 8, nurses: 24, waitTime: "42 min", optWaitTime: "24 min", alertTitle: "Emergency Overload Warning", alertDesc: "Critical emergency bed shortage predicted between 5:00 PM – 7:00 PM.", alertClass: "alert-red pulse-alert", alertTextClass: "c-red", bottlenecks: [ { name: "Emergency Department", status: "Critical", level: "92% Full", icon: "fa-truck-medical", color: "c-red" }, { name: "Shift Nurse Coverage", status: "High Demand", level: "Heavy Workload", icon: "fa-user-nurse", color: "c-amber" } ], recommendations: [ { text: "Discharge stable patients home with medication & monitoring kit.", icon: "fa-house-medical" }, { text: "Move Dr. Arvind Swaminathan to ER for emergency surge coverage.", icon: "fa-people-arrows" }, { text: "Reserve 5 step-down beds for incoming emergency admissions.", icon: "fa-bed" } ] },
+      "22:00": { beds: 18, doctors: 4, nurses: 12, waitTime: "28 min", optWaitTime: "16 min", alertTitle: "Night Staff Shortage", alertDesc: "Physician coverage dipping below recommended ratios for night shift.", alertClass: "alert-amber", alertTextClass: "c-amber", bottlenecks: [ { name: "On-Call Doctors", status: "Limited", level: "4 Active", icon: "fa-user-doctor", color: "c-red" }, { name: "Ambulance Intake", status: "Moderate", level: "50% Capacity", icon: "fa-ambulance", color: "c-green" } ], recommendations: [ { text: "Call in on-call physician for secondary coverage.", icon: "fa-phone" }, { text: "Route direct non-critical admissions to Ward 3.", icon: "fa-route" } ] }
     };
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-[#5AA7A7]', 'text-white', 'shadow-md');
-        btn.classList.add('text-slate-300');
+        btn.classList.remove('active');
       });
       document.getElementById(tabId).classList.remove('hidden');
       const activeBtn = document.getElementById(`nav-${tabId}`);
       if (activeBtn) {
-        activeBtn.classList.remove('text-slate-300');
-        activeBtn.classList.add('bg-[#5AA7A7]', 'text-white', 'shadow-md', 'shadow-[#5AA7A7]/30');
+        activeBtn.classList.add('active');
       }
     }
 
@@ -802,11 +973,11 @@
       if (!staffAssignments || staffAssignments.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="p-8 text-center text-slate-400">
+            <td colspan="6" class="p-8 text-center c-3">
               <div class="flex flex-col items-center justify-center gap-2">
-                <i class="fa-solid fa-users-slash text-2xl text-slate-600"></i>
-                <span class="text-xs font-medium">No personnel currently dispatched to this shift adjustment plan.</span>
-                <span class="text-[11px] text-slate-500">Click <strong>"Apply Shift Adjustments & Alert Doctor"</strong> to dispatch staff.</span>
+                <i class="fa-solid fa-users-slash text-2xl c-3"></i>
+                <span class="text-xs font-medium c-2">No personnel currently dispatched to this shift adjustment plan.</span>
+                <span class="text-[11px] c-3">Click <strong class="c-2">"Apply Shift Adjustments & Alert Doctor"</strong> to dispatch staff.</span>
               </div>
             </td>
           </tr>
@@ -816,7 +987,7 @@
         if (totalPersonnelElem) totalPersonnelElem.innerText = "0 Personnel Assigned";
         if (liveStateElem) {
           liveStateElem.innerHTML = `<i class="fa-solid fa-pause"></i> Waiting for Allocation`;
-          liveStateElem.className = "text-[11px] text-slate-400 mt-2 flex items-center gap-1";
+          liveStateElem.className = "text-[11px] c-3 mt-2 flex items-center gap-1";
         }
         if (clearBtn) clearBtn.classList.add('hidden');
         return;
@@ -830,25 +1001,25 @@
         if (isCompleted) completed++; else inProgress++;
 
         const statusBadge = isCompleted
-          ? `<button onclick="toggleStaffStatus(${idx})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#34D399]/15 text-[#34D399] border border-[#34D399]/30 hover:bg-[#34D399]/25 transition-all cursor-pointer">
+          ? `<button onclick="toggleStaffStatus(${idx})" class="badge b-green text-[11px]">
                <i class="fa-solid fa-circle-check text-[10px]"></i> Completed
              </button>`
-          : `<button onclick="toggleStaffStatus(${idx})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/25 transition-all cursor-pointer">
-               <span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-ping"></span> In Progress
+          : `<button onclick="toggleStaffStatus(${idx})" class="badge b-amber text-[11px]">
+               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> In Progress
              </button>`;
 
         tbody.innerHTML += `
-          <tr class="hover:bg-[#112931]/50 transition-colors">
-            <td class="p-3 font-semibold text-slate-100 flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-[#071317] border border-[#183B44] flex items-center justify-center text-slate-300 text-xs">
-                <i class="fa-solid ${s.role.includes('Chief') || s.role.includes('Surgeon') || s.role.includes('Consultant') || s.role.includes('Lead') ? 'fa-user-doctor text-[#5AA7A7]' : 'fa-user-nurse text-[#34D399]'}"></i>
+          <tr>
+            <td class="p-3 font-semibold c-ink flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg well flex items-center justify-center c-2 text-xs">
+                <i class="fa-solid ${s.role.includes('Chief') || s.role.includes('Surgeon') || s.role.includes('Consultant') || s.role.includes('Lead') ? 'fa-user-doctor c-red' : 'fa-user-nurse c-green'}"></i>
               </div>
               ${s.name}
             </td>
-            <td class="p-3 text-[#6C8CBF] font-medium">${s.role}</td>
-            <td class="p-3 text-slate-300">${s.ward}</td>
-            <td class="p-3 text-slate-300">${s.duty}</td>
-            <td class="p-3 text-slate-400 font-mono text-[11px]">${s.shift}</td>
+            <td class="p-3 c-2 font-medium">${s.role}</td>
+            <td class="p-3 c-2">${s.ward}</td>
+            <td class="p-3 c-2">${s.duty}</td>
+            <td class="p-3 c-3 font-mono text-[11px]">${s.shift}</td>
             <td class="p-3">${statusBadge}</td>
           </tr>
         `;
@@ -857,14 +1028,14 @@
       if (ipElem) ipElem.innerText = inProgress;
       if (compElem) compElem.innerText = completed;
       if (totalPersonnelElem) totalPersonnelElem.innerText = `${staffAssignments.length} Personnel Assigned`;
-      
+
       if (liveStateElem) {
         if (inProgress > 0) {
-          liveStateElem.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-[#F59E0B]"></i> ${inProgress} Active Tasks In Progress...`;
-          liveStateElem.className = "text-[11px] text-[#F59E0B] mt-2 flex items-center gap-1";
+          liveStateElem.innerHTML = `<i class="fa-solid fa-spinner animate-spin c-amber"></i> ${inProgress} Active Tasks In Progress...`;
+          liveStateElem.className = "text-[11px] c-amber mt-2 flex items-center gap-1";
         } else {
-          liveStateElem.innerHTML = `<i class="fa-solid fa-circle-check text-[#BAC94A]"></i> All Shift Duties Completed &bull; <button onclick="clearStaffRoster()" class="underline text-slate-300 hover:text-white ml-1 font-semibold">Clear Now</button>`;
-          liveStateElem.className = "text-[11px] text-[#BAC94A] mt-2 flex items-center gap-1";
+          liveStateElem.innerHTML = `<i class="fa-solid fa-circle-check c-green"></i> All Shift Duties Completed &bull; <button onclick="clearStaffRoster()" class="btn-link c-2 ml-1 font-semibold">Clear Now</button>`;
+          liveStateElem.className = "text-[11px] c-green mt-2 flex items-center gap-1";
         }
       }
     }
@@ -881,33 +1052,37 @@
       document.getElementById('bedBar').style.width = bedPercent + '%';
 
       const banner = document.getElementById('alertBanner');
-      banner.className = `p-3.5 border rounded-xl mb-4 ${data.alertClass}`;
+      banner.className = `alert-box mb-4 ${data.alertClass}`;
       document.getElementById('alertTitle').className = `text-xs font-bold uppercase tracking-wide ${data.alertTextClass}`;
       document.getElementById('alertTitle').innerText = data.alertTitle;
       document.getElementById('alertDesc').innerText = data.alertDesc;
 
+      // The markup has no #bottleneckContainer, so guard the lookup. Without it
+      // this function threw here and the recommendations below never rendered.
       const bContainer = document.getElementById('bottleneckContainer');
-      bContainer.innerHTML = '';
-      data.bottlenecks.forEach(b => {
-        bContainer.innerHTML += `
-          <div class="bg-[#071317] border border-[#183B44] rounded-xl p-3 flex items-center gap-3">
-            <div class="p-2 bg-[#0E2127] rounded-lg ${b.color}">
-              <i class="fa-solid ${b.icon}"></i>
+      if (bContainer) {
+        bContainer.innerHTML = '';
+        data.bottlenecks.forEach(b => {
+          bContainer.innerHTML += `
+            <div class="item p-3 flex items-center gap-3">
+              <div class="p-2 well ${b.color}">
+                <i class="fa-solid ${b.icon}"></i>
+              </div>
+              <div>
+                <div class="text-xs font-semibold c-ink">${b.name}</div>
+                <div class="text-[11px] c-3">Status: <span class="font-medium c-2">${b.status}</span> (${b.level})</div>
+              </div>
             </div>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">${b.name}</div>
-              <div class="text-[11px] text-slate-400">Status: <span class="font-medium text-slate-300">${b.status}</span> (${b.level})</div>
-            </div>
-          </div>
-        `;
-      });
+          `;
+        });
+      }
 
       const rList = document.getElementById('recommendationList');
       rList.innerHTML = '';
       data.recommendations.forEach(r => {
         rList.innerHTML += `
-          <div class="bg-[#071317] border border-[#183B44] rounded-xl p-2.5 flex items-center gap-2.5 text-xs text-slate-300">
-            <i class="fa-solid ${r.icon} text-[#34D399]"></i>
+          <div class="item p-2.5 flex items-center gap-2.5 text-xs c-2">
+            <i class="fa-solid ${r.icon} c-green"></i>
             <span>${r.text}</span>
           </div>
         `;
@@ -928,21 +1103,21 @@
       patients.forEach(p => {
         const isStable = p.risk === 'stable';
         const cardHtml = `
-          <div class="bg-[#071317] border border-[#183B44] p-3 rounded-xl space-y-2 text-xs hover:border-[#5AA7A7]/50 transition-all">
+          <div class="item p-3 space-y-2 text-xs">
             <div class="flex justify-between items-start">
               <div>
-                <span class="font-bold text-slate-100 text-sm">${p.name}</span>
-                <span class="text-slate-400 text-[11px] block">Age: ${p.age} &bull; ${p.ward}</span>
+                <span class="font-bold c-ink text-sm">${p.name}</span>
+                <span class="c-3 text-[11px] block">Age: ${p.age} &bull; ${p.ward}</span>
               </div>
-              <button onclick="changePatientRisk(${p.id})" class="text-[10px] bg-[#0E2127] text-slate-300 border border-[#183B44] px-2 py-1 rounded hover:bg-[#183B44]">Change Status</button>
+              <button onclick="changePatientRisk(${p.id})" class="btn btn-ghost c-2 text-[10px] px-2.5 py-1">Change Status</button>
             </div>
-            <div class="text-slate-300 bg-[#091519] p-2 rounded-lg border border-[#183B44]/60">
-              <span class="text-slate-400 block text-[10px]">DIAGNOSIS / CONDITION:</span>
-              <span class="font-medium text-slate-200">${p.condition}</span>
+            <div class="well p-2">
+              <span class="c-3 block text-[10px]">DIAGNOSIS / CONDITION:</span>
+              <span class="font-medium c-ink">${p.condition}</span>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+            <div class="flex justify-between items-center text-[10px] c-3 pt-1">
               <span>Doctor: ${p.doctor}</span>
-              <button onclick="removePatient(${p.id})" class="text-[#34D399] hover:underline font-medium">
+              <button onclick="removePatient(${p.id})" class="btn-link c-green font-medium text-[10px]">
                 ${isStable ? 'Discharge Home with Meds' : 'Discharge'}
               </button>
             </div>
@@ -970,12 +1145,12 @@
       const tbody = document.getElementById('globalAppointmentsBody');
       if (!tbody) return;
       tbody.innerHTML = '';
-      
+
       if (!appointments || appointments.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="p-6 text-center text-slate-500">
-              <i class="fa-solid fa-calendar-xmark text-xl mb-1 text-slate-600"></i>
+            <td colspan="7" class="p-6 text-center c-3">
+              <i class="fa-solid fa-calendar-xmark text-xl mb-1 c-3"></i>
               <p class="text-xs font-medium">No appointments currently scheduled.</p>
             </td>
           </tr>
@@ -986,21 +1161,21 @@
       appointments.forEach(apt => {
         const isAttended = apt.status === 'Finished' || apt.status === 'Attended';
         const statusBadge = isAttended
-          ? `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] uppercase font-bold flex items-center gap-1 w-fit"><i class="fa-solid fa-circle-check text-[9px]"></i> ATTENDED</span>`
-          : `<span class="bg-[#BAC94A]/20 text-[#BAC94A] border border-[#BAC94A]/40 px-2 py-0.5 rounded text-[10px] uppercase font-bold">UPCOMING</span>`;
+          ? `<span class="badge b-green text-[10px] uppercase font-bold w-fit"><i class="fa-solid fa-circle-check text-[9px]"></i> ATTENDED</span>`
+          : `<span class="badge b-amber text-[10px] uppercase font-bold">UPCOMING</span>`;
 
         tbody.innerHTML += `
-          <tr class="hover:bg-[#112931]/50 transition-colors border-b border-[#183B44]">
-            <td class="p-3 font-semibold text-slate-100">${apt.patientName}</td>
-            <td class="p-3 text-[#5AA7A7] font-medium flex items-center gap-1.5">
-              <i class="fa-solid fa-user-doctor text-[11px] text-[#34D399]"></i> ${apt.doctor}
+          <tr>
+            <td class="p-3 font-semibold c-ink">${apt.patientName}</td>
+            <td class="p-3 c-red font-medium flex items-center gap-1.5">
+              <i class="fa-solid fa-user-doctor text-[11px] c-green"></i> ${apt.doctor}
             </td>
-            <td class="p-3 text-slate-300 font-medium">${apt.dept}</td>
-            <td class="p-3 text-[#BAC94A] font-mono">${apt.date}</td>
-            <td class="p-3 text-slate-400">${apt.reason}</td>
+            <td class="p-3 c-2 font-medium">${apt.dept}</td>
+            <td class="p-3 c-green font-mono">${apt.date}</td>
+            <td class="p-3 c-3">${apt.reason}</td>
             <td class="p-3">${statusBadge}</td>
             <td class="p-3 text-right">
-              <button onclick="removeAppointment(${apt.id})" class="text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 ml-auto">
+              <button onclick="removeAppointment(${apt.id})" class="btn btn-soft-red px-2.5 py-1 text-[10px] gap-1 ml-auto">
                 <i class="fa-solid fa-trash-can text-[10px]"></i> Cancel
               </button>
             </td>
@@ -1042,7 +1217,7 @@
       const badge = document.getElementById('autoMatchBadge');
       if (badge) {
         badge.innerText = `AUTO-MATCHED: ${matched.dept.toUpperCase()}`;
-        badge.className = "text-[9px] bg-[#34D399]/25 text-[#34D399] border border-[#34D399]/50 px-2 py-0.5 rounded font-mono font-bold animate-pulse";
+        badge.className = "badge b-green text-[9px] font-mono font-bold py-0.5 animate-pulse";
       }
     }
 
@@ -1131,17 +1306,17 @@
       feed.innerHTML = '';
       alarms.forEach(a => {
         feed.innerHTML += `
-          <div class="p-4 bg-[#071317] border ${a.type === 'alert' ? 'border-red-500/50 alarm-active' : 'border-[#183B44]'} rounded-xl space-y-1">
+          <div class="item p-4 ${a.type === 'alert' ? 'alarm-active' : ''} space-y-1" ${a.type === 'alert' ? 'style="border-color:rgba(255,107,117,.5)"' : ''}>
             <div class="flex justify-between items-center">
-              <span class="font-bold text-xs ${a.type === 'alert' ? 'text-red-400' : 'text-[#F59E0B]'} flex items-center gap-1.5">
+              <span class="font-bold text-xs ${a.type === 'alert' ? 'c-red' : 'c-amber'} flex items-center gap-1.5">
                 <i class="fa-solid fa-triangle-exclamation"></i> ${a.title}
               </span>
-              <span class="text-[10px] text-slate-400">${a.time}</span>
+              <span class="text-[10px] c-3">${a.time}</span>
             </div>
-            <p class="text-xs text-slate-300">${a.desc}</p>
-            <div class="text-[10px] text-slate-400 pt-1 flex items-center gap-2">
-              <span class="bg-[#0E2127] px-2 py-0.5 rounded border border-[#183B44]">Location: ${a.location}</span>
-              <span class="text-[#34D399]">Broadcasted to on-duty mobile devices</span>
+            <p class="text-xs c-2">${a.desc}</p>
+            <div class="text-[10px] c-3 pt-1 flex items-center gap-2 flex-wrap">
+              <span class="badge b-white text-[10px] font-medium">Location: ${a.location}</span>
+              <span class="c-green">Broadcasted to on-duty mobile devices</span>
             </div>
           </div>
         `;
@@ -1149,19 +1324,19 @@
 
       const recContainer = document.getElementById('reallocationRecommendations');
       recContainer.innerHTML = `
-        <div class="p-3 bg-[#071317] border border-[#183B44] rounded-xl space-y-2">
-          <div class="flex justify-between font-semibold text-slate-200">
+        <div class="item p-3 space-y-2">
+          <div class="flex justify-between font-semibold c-ink">
             <span>Reassign Nurses to Emergency</span>
-            <span class="text-[#BAC94A]">+2 Staff</span>
+            <span class="c-green">+2 Staff</span>
           </div>
-          <p class="text-slate-400">Reassign 2 nurses from <strong>General Ward B</strong> to the <strong>Emergency Room</strong> to handle current arrival volume.</p>
+          <p class="c-3">Reassign 2 nurses from <strong class="c-2">General Ward B</strong> to the <strong class="c-2">Emergency Room</strong> to handle current arrival volume.</p>
         </div>
-        <div class="p-3 bg-[#071317] border border-[#183B44] rounded-xl space-y-2">
-          <div class="flex justify-between font-semibold text-slate-200">
+        <div class="item p-3 space-y-2">
+          <div class="flex justify-between font-semibold c-ink">
             <span>Hold Backup Inpatient Beds</span>
-            <span class="text-[#BAC94A]">+5 Beds</span>
+            <span class="c-green">+5 Beds</span>
           </div>
-          <p class="text-slate-400">Reserve 5 step-down beds in Ward B for admitted emergency patients.</p>
+          <p class="c-3">Reserve 5 step-down beds in Ward B for admitted emergency patients.</p>
         </div>
       `;
     }
@@ -1227,11 +1402,11 @@
     function executeReallocation() {
       const btn = document.getElementById('execReallocationBtn');
       btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Staff Dispatch Confirmed!`;
-      btn.className = "w-full bg-[#071317] text-[#BAC94A] border border-[#BAC94A]/30 font-bold text-xs py-3 rounded-xl cursor-default flex items-center justify-center gap-2";
+      btn.className = "btn btn-done btn-wide w-full font-bold text-xs py-3 gap-2 cursor-default";
 
       setTimeout(() => {
         btn.innerHTML = `<i class="fa-solid fa-people-arrows"></i> Confirm Staff Transfer`;
-        btn.className = "w-full bg-[#BAC94A] hover:bg-[#a5b43d] text-slate-950 font-bold text-xs py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#BAC94A]/25";
+        btn.className = "btn btn-white btn-wide w-full font-bold text-xs py-3 gap-2";
       }, 4000);
     }
 
@@ -1253,10 +1428,10 @@
 
       const currentVal = document.getElementById('timeSim').value;
       const targetWait = scenarios[currentVal].optWaitTime;
-      
+
       document.getElementById('waitTime').innerText = targetWait;
-      document.getElementById('waitTime').classList.add('text-[#34D399]');
-      
+      document.getElementById('waitTime').classList.add('c-green');
+
       staffAssignments = dynamicIndianStaff.map(s => ({
         ...s,
         status: s.name.includes("Swaminathan") ? "Dispatched (Awaiting Acceptance)" : "In Progress"
@@ -1266,7 +1441,7 @@
 
       const btn = document.getElementById('applyOptBtn');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1.5 text-[#F59E0B]"></i> Sent Directive & Awaiting Doctor Response...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1.5 c-amber"></i> Sent Directive & Awaiting Doctor Response...`;
 
       broadcastToCloud({
         type: 'SHIFT_REASSIGNMENT_DISPATCHED',
@@ -1278,7 +1453,7 @@
           instruction: "Critical patient influx at Emergency Department. Please report to Trauma Bay ER-02 immediately."
         }
       });
-      
+
       const completionMilestones = [
         { index: 6, delay: 2000 },
         { index: 7, delay: 3500 },
@@ -1332,7 +1507,7 @@
       if (data.type === 'CALL_CLAIMED') {
         const banner = document.getElementById('globalAlarmBanner');
         const text = document.getElementById('globalAlarmText');
-        banner.className = "bg-emerald-600 text-white py-2.5 px-4 text-center font-bold text-xs uppercase tracking-wide flex justify-between items-center z-50 shadow-lg";
+        banner.className = "alarm-banner ok relative py-2.5 px-4 text-center font-bold text-xs uppercase tracking-wide flex justify-between items-center z-50";
         text.innerHTML = `<i class="fa-solid fa-lock text-sm mr-2"></i> CALL LOCKED &bull; BED ATTENDED BY ${data.doctorName.toUpperCase()}`;
         document.getElementById('alarmBadge').classList.add('hidden');
       }
@@ -1352,11 +1527,11 @@
         const btn = document.getElementById('applyOptBtn');
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = `<i class="fa-solid fa-circle-check text-[#BAC94A]"></i> Dr. Arvind Swaminathan Accepted Duty!`;
-          btn.className = "w-full bg-[#071317] text-[#BAC94A] border border-[#BAC94A]/30 font-semibold text-xs py-3 rounded-xl flex items-center justify-center gap-2";
+          btn.innerHTML = `<i class="fa-solid fa-circle-check c-green"></i> Dr. Arvind Swaminathan Accepted Duty!`;
+          btn.className = "btn btn-done btn-wide w-full font-semibold text-xs py-3 gap-2";
           setTimeout(() => {
-            btn.innerHTML = `<i class="fa-solid fa-check-double text-[#F59E0B]"></i> Apply Shift Adjustments & Alert Doctor`;
-            btn.className = "w-full bg-[#5AA7A7] hover:bg-[#499393] text-white font-semibold text-xs py-3 rounded-xl transition-all shadow-lg shadow-[#5AA7A7]/25 flex items-center justify-center gap-2";
+            btn.innerHTML = `<i class="fa-solid fa-check-double"></i> Apply Shift Adjustments & Alert Doctor`;
+            btn.className = "btn btn-red btn-wide w-full font-semibold text-xs py-3 gap-2";
           }, 3500);
         }
       }
@@ -1394,19 +1569,19 @@
     function appendCopilotMessage(sender, text) {
       const messagesContainer = document.getElementById('copilotMessages');
       const isUser = sender === 'user';
-      
+
       const msgHtml = isUser ? `
         <div class="flex items-start justify-end gap-2">
-          <div class="bg-[#5AA7A7] text-white p-2.5 rounded-xl rounded-tr-none text-xs max-w-[85%] leading-relaxed">
+          <div class="bubble-user p-2.5 text-xs max-w-[85%] leading-relaxed">
             ${text}
           </div>
         </div>
       ` : `
         <div class="flex items-start gap-2">
-          <div class="w-6 h-6 rounded-md bg-[#5AA7A7]/20 text-[#5AA7A7] flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-md mark text-[10px] shrink-0 mt-0.5">
             <i class="fa-solid fa-robot"></i>
           </div>
-          <div class="bg-[#071317] border border-[#183B44] p-2.5 rounded-xl text-slate-200 text-xs max-w-[85%] leading-relaxed">
+          <div class="item p-2.5 c-ink text-xs max-w-[85%] leading-relaxed">
             ${text}
           </div>
         </div>
