@@ -2,77 +2,254 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedFlow — Doctor Duty & Emergency Response</title>
-  <!-- Tailwind CSS CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>MedFlow — Doctor Duty & Emergency Response | SRM Prime, Ramapuram</title>
+  <meta name="theme-color" content="#0d0507">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d92332'/%3E%3Cpath d='M32 14v36M14 32h36' stroke='white' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN (layout utilities only) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .alarm-flash {
-      animation: alertGlow 1.2s infinite alternate;
-    }
-    @keyframes alertGlow {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); border-color: rgba(239, 68, 68, 0.9); }
-      100% { box-shadow: 0 0 20px 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
-    }
+  :root{
+    --bg:#0d0507;--bg-2:#1a080c;
+    --ink:#fdf6f6;--ink-2:#cdb3b6;--ink-3:#8f7479;
+    --red:#e5303c;--red-2:#ff6b75;--green:#34d399;--amber:#fbbf24;
+    --glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.10);--line:rgba(255,255,255,.14);
+  }
+  html{-webkit-text-size-adjust:100%}
+  *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+    background:var(--bg);color:var(--ink);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;letter-spacing:-.01em;
+  }
+  ::selection{background:var(--red);color:#fff}
+
+  /* ambient background (same as index) */
+  .bg-aurora{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(60vw 50vw at 85% 10%,rgba(229,48,60,.22),transparent 60%),
+      radial-gradient(50vw 45vw at 5% 40%,rgba(255,255,255,.05),transparent 60%),
+      radial-gradient(70vw 60vw at 60% 110%,rgba(229,48,60,.16),transparent 60%),
+      linear-gradient(180deg,var(--bg),var(--bg-2) 60%,var(--bg));}
+  .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 100%);
+            mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 100%);}
+  .layer{position:relative;z-index:2}
+
+  /* text colours */
+  .c-ink{color:var(--ink)} .c-2{color:var(--ink-2)} .c-3{color:var(--ink-3)}
+  .c-red{color:var(--red-2)} .c-green{color:var(--green)} .c-amber{color:var(--amber)}
+  .hover-ink:hover{color:#fff}
+
+  /* glass surfaces */
+  .glass{
+    background:linear-gradient(160deg,rgba(255,255,255,.11),rgba(255,255,255,.03));
+    border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);
+    box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);
+    border-radius:24px;}
+  .glass-dark{background:linear-gradient(160deg,rgba(44,15,21,.86),rgba(18,6,9,.92))}
+  .glass-sm{
+    background:var(--glass);border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+    box-shadow:0 10px 30px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);
+    border-radius:20px;}
+  .item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:16px;
+    transition:border-color .25s,background .25s,transform .25s}
+  .item:hover{border-color:rgba(255,107,117,.4);background:rgba(255,255,255,.08)}
+  .well{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.09);border-radius:14px}
+  .nav-glass{
+    background:rgba(24,8,12,.55);border:1px solid var(--line);
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12);
+    border-radius:28px;}
+  .sep{border-bottom:1px solid var(--line)}
+  .sep-t{border-top:1px solid var(--line)}
+  .overlay{background:rgba(13,5,7,.7);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  .tone-red{border-color:rgba(255,107,117,.42)}
+  .tone-amber{border-color:rgba(251,191,36,.38)}
+  .tone-green{border-color:rgba(52,211,153,.38)}
+  .foot-glass{background:rgba(10,4,6,.6);border-top:1px solid var(--line);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+
+  /* icon marks */
+  .mark{display:grid;place-items:center;flex:none;color:#fff;
+    background:linear-gradient(145deg,#f04452,#b3121f);
+    box-shadow:0 6px 18px rgba(229,48,60,.5),inset 0 1px 0 rgba(255,255,255,.4)}
+  .mark-soft{display:grid;place-items:center;flex:none;color:var(--ink-2);
+    background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+    border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-family:inherit;
+    border:1px solid var(--line);border-radius:999px;cursor:pointer;transition:.25s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:disabled{cursor:default;transform:none}
+  .btn-wide{border-radius:18px}
+  .btn-red{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;border-color:rgba(255,255,255,.25);
+    box-shadow:0 8px 24px rgba(229,48,60,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-red:hover{box-shadow:0 12px 30px rgba(229,48,60,.6),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-green{background:linear-gradient(180deg,#3fe0a9,#0f9d6e);color:#032a1d;border-color:rgba(255,255,255,.3);
+    box-shadow:0 8px 24px rgba(52,211,153,.3),inset 0 1px 0 rgba(255,255,255,.45)}
+  .btn-green:hover{box-shadow:0 12px 30px rgba(52,211,153,.45),inset 0 1px 0 rgba(255,255,255,.45)}
+  .btn-white{background:linear-gradient(180deg,#fff,#e4e6ea);color:#2a0a10;border-color:rgba(255,255,255,.6);
+    box-shadow:0 12px 30px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.8)}
+  .btn-ghost{background:var(--glass);color:var(--ink)}
+  .btn-ghost:hover{background:var(--glass-2)}
+  .btn-soft-red{background:rgba(229,48,60,.14);color:var(--red-2);border-color:rgba(255,107,117,.35)}
+  .btn-soft-red:hover{background:rgba(229,48,60,.24)}
+  .btn-done{background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.35);box-shadow:none}
+  .btn-busy{background:var(--glass);color:var(--ink-2);box-shadow:none}
+  .btn-link{background:none;border:0;padding:0;border-radius:0;cursor:pointer;font-family:inherit;font-weight:600}
+  .btn-link:hover{text-decoration:underline;transform:none}
+
+  /* badges, chips */
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:600;border:1px solid transparent;font-family:inherit}
+  .b-green{color:var(--green);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35)}
+  .b-amber{color:var(--amber);background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35)}
+  .b-red{color:var(--red-2);background:rgba(229,48,60,.14);border-color:rgba(255,107,117,.35)}
+  .b-white{color:var(--ink);background:rgba(255,255,255,.08);border-color:var(--line)}
+  button.badge{cursor:pointer;transition:.2s}
+  button.badge:hover{filter:brightness(1.25)}
+  .chip{background:var(--glass);border:1px solid var(--line);color:var(--ink-2);border-radius:999px;
+    transition:.2s;cursor:pointer;font-family:inherit}
+  .chip:hover{border-color:rgba(255,107,117,.55);color:#fff}
+
+  /* fields */
+  .field{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;color:var(--ink);
+    outline:none;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+  .field::placeholder{color:var(--ink-3)}
+  .field:focus{border-color:rgba(255,107,117,.65);box-shadow:0 0 0 3px rgba(229,48,60,.18)}
+  .field.ro{background:rgba(255,255,255,.05);cursor:not-allowed}
+  .field.emr{color:#d1fae5;border-color:rgba(52,211,153,.35)}
+  .field.is-loading{color:var(--ink-3)}
+  select.field option{background:#1a080c;color:var(--ink)}
+  input[type=date].field{color-scheme:dark}
+
+  /* segmented tab bar (manager) */
+  .seg{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:999px}
+  .tab-btn{border-radius:999px;color:var(--ink-2);font-weight:500;border:1px solid transparent;
+    transition:.25s;font-family:inherit;cursor:pointer}
+  .tab-btn:hover{color:#fff;background:var(--glass-2)}
+  .tab-btn.active{color:#fff;background:linear-gradient(180deg,#f04452,#c4202e);border-color:rgba(255,255,255,.25);
+    box-shadow:0 8px 24px rgba(229,48,60,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+
+  /* progress */
+  .bar{background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden}
+  .bar>div{border-radius:999px}
+  .f-red{background:linear-gradient(90deg,#ff6b75,#e5303c);box-shadow:0 0 12px rgba(229,48,60,.6)}
+  .f-amber{background:linear-gradient(90deg,#fde68a,#f59e0b);box-shadow:0 0 12px rgba(245,158,11,.5)}
+  .f-green{background:linear-gradient(90deg,#6ee7b7,#10b981);box-shadow:0 0 12px rgba(52,211,153,.5)}
+
+  /* alert boxes */
+  .alert-box{padding:14px;border-radius:18px;border:1px solid var(--line)}
+  .alert-red{background:rgba(229,48,60,.12);border-color:rgba(255,107,117,.4)}
+  .alert-amber{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.35)}
+  .alert-green{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.38)}
+  .alarm-banner{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.25);box-shadow:0 10px 30px rgba(229,48,60,.4)}
+  .alarm-banner.ok{background:linear-gradient(180deg,#3fe0a9,#0f9d6e);color:#032a1d;box-shadow:0 10px 30px rgba(52,211,153,.3)}
+
+  /* tables */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0}
+  .tbl thead th{background:rgba(255,255,255,.06);color:var(--ink-3);font-weight:600}
+  .tbl thead th:first-child{border-radius:14px 0 0 14px}
+  .tbl thead th:last-child{border-radius:0 14px 14px 0}
+  .tbl tbody tr{transition:background .2s}
+  .tbl tbody tr:hover{background:rgba(255,255,255,.04)}
+  .tbl tbody tr+tr td{border-top:1px solid var(--line)}
+
+  /* chat bubbles */
+  .bubble-user{background:linear-gradient(180deg,#f04452,#c4202e);color:#fff;border-radius:16px 4px 16px 16px;
+    box-shadow:0 6px 18px rgba(229,48,60,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+
+  /* motion */
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+  .tab-content,.rise{animation:rise .55s cubic-bezier(.2,.7,.2,1)}
+  .pop{animation:pop .35s cubic-bezier(.2,.7,.2,1)}
+  .alarm-flash{animation:alertGlow 1.2s infinite alternate}
+  @keyframes alertGlow{
+    0%{box-shadow:0 0 0 0 rgba(229,48,60,.7),0 30px 80px rgba(0,0,0,.45);border-color:rgba(255,107,117,.9)}
+    100%{box-shadow:0 0 40px 6px rgba(229,48,60,.25),0 30px 80px rgba(0,0,0,.45);border-color:rgba(255,107,117,.3)}}
+  .alarm-active{animation:alertFlash 1s infinite alternate}
+  @keyframes alertFlash{
+    0%{background-color:rgba(229,48,60,.20);border-color:rgba(255,107,117,.85)}
+    100%{background-color:rgba(229,48,60,.03);border-color:rgba(255,107,117,.2)}}
+  .pulse-alert{animation:pulse 1.5s infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(229,48,60,.45)}
+    70%{box-shadow:0 0 0 10px rgba(229,48,60,0)}
+    100%{box-shadow:0 0 0 0 rgba(229,48,60,0)}}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="min-h-screen flex flex-col">
+
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
 
   <!-- TOP BAR -->
-  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-    <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+  <header class="sticky top-0 z-40 px-3 pt-3">
+    <div class="max-w-md mx-auto nav-glass px-4 py-3 flex justify-between items-center">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold">
+        <div class="w-10 h-10 rounded-xl mark">
           <i class="fa-solid fa-user-doctor text-lg"></i>
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-sm font-bold text-white">Dr. Arvind Swaminathan</h1>
-            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">ON DUTY</span>
+            <h1 class="text-sm font-bold c-ink">Dr. Arvind Swaminathan</h1>
+            <span class="badge b-green text-[10px]">ON DUTY</span>
           </div>
-          <p class="text-[11px] text-slate-400">Emergency Lead &bull; SRM Global Hospitals</p>
+          <p class="text-[11px] c-3">Emergency Lead &bull; SRM Prime, Ramapuram</p>
         </div>
       </div>
-      <button onclick="simulateIncomingAlarm()" class="text-xs bg-red-500/10 text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-xl hover:bg-red-500/20 transition-all font-semibold flex items-center gap-1 shadow-inner">
+      <button onclick="simulateIncomingAlarm()" class="btn btn-soft-red text-xs px-2.5 py-1.5 gap-1">
         <i class="fa-solid fa-bell text-[10px]"></i> Test Alarm
       </button>
     </div>
   </header>
 
   <!-- POP-UP MODAL: INCOMING EMERGENCY ALARM (CODE RED) -->
-  <div id="emergencyAlarmModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-    <div class="bg-slate-900 border-2 border-red-500 rounded-3xl w-full max-w-sm p-6 space-y-4 alarm-flash text-center shadow-2xl">
-      <div class="w-16 h-16 bg-red-500/20 text-red-500 border border-red-500/40 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
+  <div id="emergencyAlarmModal" class="fixed inset-0 overlay hidden items-center justify-center z-50 p-4">
+    <div class="glass glass-dark tone-red w-full max-w-sm p-6 space-y-4 alarm-flash text-center pop">
+      <div class="w-16 h-16 bg-red-500/20 c-red border border-red-400/40 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
         <i class="fa-solid fa-heart-pulse"></i>
       </div>
-      
+
       <div>
-        <span class="text-[11px] font-bold uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/30 px-3 py-0.5 rounded-full">
+        <span class="badge b-red text-[11px] font-bold uppercase tracking-widest">
           CODE RED &bull; IMMEDIATE ATTENTION
         </span>
-        <h3 class="text-xl font-extrabold text-white mt-3" id="modalBed">Trauma Bay ER-02</h3>
-        <p class="text-sm font-bold text-slate-200 mt-1" id="modalPatient">Patient: Arjun Verma (62M)</p>
-        <p class="text-xs text-amber-300 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 mt-2 font-medium" id="modalSymptoms">
+        <h3 class="text-xl font-extrabold c-ink mt-3" id="modalBed">Trauma Bay ER-02</h3>
+        <p class="text-sm font-bold c-ink mt-1" id="modalPatient">Patient: Arjun Verma (62M)</p>
+        <p class="text-xs c-amber well p-2.5 mt-2 font-medium" id="modalSymptoms">
           Sudden Arrhythmia / BP drop to 70/40 mmHg
         </p>
       </div>
 
-      <div class="p-3 bg-slate-950/60 rounded-xl text-[11px] text-slate-400 text-left flex items-start gap-2">
-        <i class="fa-solid fa-shield-halved text-emerald-400 text-sm mt-0.5"></i>
-        <span>Clicking <strong>"I Am Attending"</strong> broadcasts to hospital operations and locks out other doctors so they do not duplicate effort.</span>
+      <div class="p-3 well text-[11px] c-2 text-left flex items-start gap-2">
+        <i class="fa-solid fa-shield-halved c-green text-sm mt-0.5"></i>
+        <span>Clicking <strong class="c-ink">"I Am Attending"</strong> broadcasts to hospital operations and locks out other doctors so they do not duplicate effort.</span>
       </div>
 
       <div class="space-y-2">
-        <button onclick="claimEmergencyResponse()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold text-sm py-3.5 rounded-2xl shadow-xl shadow-red-900/50 flex items-center justify-center gap-2 transition-all">
+        <button onclick="claimEmergencyResponse()" class="btn btn-red btn-wide w-full font-bold text-sm py-3.5">
           <i class="fa-solid fa-person-running"></i> I Am Attending This Patient
         </button>
-        <button onclick="dismissEmergencyModal()" class="w-full bg-slate-800 text-slate-400 text-xs py-2 rounded-xl hover:text-white transition-all">
+        <button onclick="dismissEmergencyModal()" class="btn btn-ghost w-full text-xs py-2 c-2">
           Handover / Unable to Respond
         </button>
       </div>
@@ -80,28 +257,28 @@
   </div>
 
   <!-- POP-UP MODAL: SHIFT PLANNER NOTIFICATION -->
-  <div id="shiftDirectiveModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-    <div class="bg-slate-900 border-2 border-[#34D399] rounded-3xl w-full max-w-sm p-6 space-y-4 text-center shadow-2xl">
-      <div class="w-16 h-16 bg-[#34D399]/20 text-[#34D399] border border-[#34D399]/40 rounded-full flex items-center justify-center mx-auto text-2xl">
+  <div id="shiftDirectiveModal" class="fixed inset-0 overlay hidden items-center justify-center z-50 p-4">
+    <div class="glass glass-dark tone-green w-full max-w-sm p-6 space-y-4 text-center pop">
+      <div class="w-16 h-16 bg-emerald-400/15 c-green border border-emerald-400/40 rounded-full flex items-center justify-center mx-auto text-2xl">
         <i class="fa-solid fa-bell-concierge animate-bounce"></i>
       </div>
-      
+
       <div>
-        <span class="text-[11px] font-bold uppercase tracking-widest text-[#34D399] bg-[#34D399]/10 border border-[#34D399]/30 px-3 py-0.5 rounded-full">
+        <span class="badge b-green text-[11px] font-bold uppercase tracking-widest">
           SHIFT ASSIGNMENT DIRECTIVE
         </span>
-        <h3 class="text-lg font-extrabold text-white mt-3" id="shiftModalTitle">Emergency Surge Coverage</h3>
-        <p class="text-xs text-amber-300 font-medium" id="shiftModalWard">Target: Emergency Room — Bay 2</p>
-        <p class="text-xs text-slate-300 bg-slate-950/80 p-3 rounded-xl border border-slate-800 mt-2 text-left" id="shiftModalInstruction">
+        <h3 class="text-lg font-extrabold c-ink mt-3" id="shiftModalTitle">Emergency Surge Coverage</h3>
+        <p class="text-xs c-amber font-medium" id="shiftModalWard">Target: Emergency Room — Bay 2</p>
+        <p class="text-xs c-2 well p-3 mt-2 text-left" id="shiftModalInstruction">
           Manager Shift Planner has reassigned duties due to patient surge. Please report immediately.
         </p>
       </div>
 
       <div class="space-y-2">
-        <button onclick="acceptShiftDuty()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm py-3.5 rounded-2xl shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-2 transition-all">
+        <button onclick="acceptShiftDuty()" class="btn btn-green btn-wide w-full font-bold text-sm py-3.5">
           <i class="fa-solid fa-circle-check"></i> Accept Assignment & Report On Duty
         </button>
-        <button onclick="dismissShiftModal()" class="w-full bg-slate-800 text-slate-400 text-xs py-2 rounded-xl hover:text-white transition-all">
+        <button onclick="dismissShiftModal()" class="btn btn-ghost w-full text-xs py-2 c-2">
           Acknowledge & Close
         </button>
       </div>
@@ -109,77 +286,77 @@
   </div>
 
   <!-- MAIN MOBILE CONTENT -->
-  <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-5 pb-20">
+  <main class="layer flex-grow max-w-md w-full mx-auto p-4 space-y-5 pb-20">
 
     <!-- ACTIVE ATTENDING STATUS BANNER -->
-    <div id="activeAttendingBanner" class="hidden p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl text-xs space-y-2 shadow-inner">
+    <div id="activeAttendingBanner" class="hidden alert-box alert-green text-xs space-y-2 rise">
       <div class="flex justify-between items-center">
-        <span class="font-bold text-emerald-300 flex items-center gap-1.5">
+        <span class="font-bold c-green flex items-center gap-1.5">
           <i class="fa-solid fa-circle-check"></i> You Are Attending Bedside
         </span>
-        <span class="text-[10px] text-emerald-400 font-mono">Status: En Route</span>
+        <span class="text-[10px] c-green font-mono">Status: En Route</span>
       </div>
-      <p class="text-slate-200" id="attendingDetails">Trauma Bay ER-02 &bull; Arjun Verma</p>
-      <div class="text-[10px] text-slate-400 bg-slate-950/60 p-2 rounded-xl flex justify-between items-center">
+      <p class="c-ink" id="attendingDetails">Trauma Bay ER-02 &bull; Arjun Verma</p>
+      <div class="text-[10px] c-2 well p-2 flex justify-between items-center">
         <span>Conflict Locked: Peer doctors notified to hold positions.</span>
-        <button onclick="clearAttendingStatus()" class="text-emerald-400 font-bold hover:underline">Complete</button>
+        <button onclick="clearAttendingStatus()" class="btn-link c-green font-bold">Complete</button>
       </div>
     </div>
 
     <!-- MY APPOINTMENTS & AUTOMATED AI CONSULTATION -->
     <section class="space-y-3" id="appointmentContainer">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+      <div class="flex justify-between items-center sep pb-2">
         <div>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-calendar-check text-blue-400"></i> My Appointments
+          <h2 class="text-xs font-bold uppercase tracking-wider c-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check c-red"></i> My Appointments
           </h2>
-          <p class="text-[11px] text-slate-400 mt-0.5">Outpatients scheduled for today</p>
+          <p class="text-[11px] c-3 mt-0.5">Outpatients scheduled for today</p>
         </div>
-        <span class="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-bold" id="aptCountBadge">2</span>
+        <span class="badge b-red text-xs" id="aptCountBadge">2</span>
       </div>
 
       <!-- List of Appointments -->
       <div class="space-y-3" id="doctorAppointmentsList"></div>
 
       <!-- AI Consultation Area -->
-      <div id="aiConsultationArea" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-lg">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+      <div id="aiConsultationArea" class="hidden glass p-4 space-y-4 rise">
+        <div class="flex justify-between items-center sep pb-3">
           <div>
-            <span class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Active Consultation</span>
-            <h3 class="font-bold text-white text-sm mt-0.5" id="consultPatientName">Patient Name</h3>
+            <span class="text-[10px] c-red font-bold uppercase tracking-widest">Active Consultation</span>
+            <h3 class="font-bold c-ink text-sm mt-0.5" id="consultPatientName">Patient Name</h3>
           </div>
-          <button onclick="closeConsultation()" class="text-slate-400 hover:text-white text-xs bg-slate-800 px-2.5 py-1.5 rounded-lg transition-all"><i class="fa-solid fa-xmark"></i></button>
+          <button onclick="closeConsultation()" class="btn btn-ghost c-2 text-xs px-2.5 py-1.5"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        
+
         <div>
           <div class="flex justify-between items-center mb-1.5">
-            <label class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Live EMR Diagnostic Record</label>
-            <span class="text-[9px] text-emerald-400 font-bold tracking-wider" id="emrSyncStatus">
+            <label class="text-[10px] c-3 uppercase tracking-wider font-semibold">Live EMR Diagnostic Record</label>
+            <span class="text-[9px] c-green font-bold tracking-wider" id="emrSyncStatus">
               <i class="fa-solid fa-spinner animate-spin mr-1"></i> SYNCING EMR...
             </span>
           </div>
-          <textarea id="doctorNotes" readonly rows="3" class="w-full bg-slate-950 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-50 focus:outline-none resize-none shadow-inner" placeholder="Fetching patient record from Hospital EMR..."></textarea>
+          <textarea id="doctorNotes" readonly rows="3" class="field emr w-full p-3 text-xs resize-none" placeholder="Fetching patient record from Hospital EMR..."></textarea>
         </div>
 
         <!-- AI Output Result Box -->
-        <div id="aiOutputBox" class="hidden bg-slate-950 border border-blue-500/30 rounded-xl p-4 shadow-lg space-y-3">
-          <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
-            <h4 class="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-              <i class="fa-solid fa-microchip text-emerald-400"></i> AI Generated Plan
+        <div id="aiOutputBox" class="hidden well p-4 space-y-3 rise">
+          <div class="flex justify-between items-center sep pb-2">
+            <h4 class="text-[10px] font-bold c-red uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-microchip c-green"></i> AI Generated Plan
             </h4>
-            <span class="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded font-mono">
-              <i class="fa-solid fa-pen-to-square mr-1"></i> Editable by Doctor
+            <span class="badge b-white text-[9px] font-mono">
+              <i class="fa-solid fa-pen-to-square"></i> Editable by Doctor
             </span>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-[9px] text-slate-400 uppercase font-semibold block mb-1">Follow-up Schedule</label>
-              <input type="text" id="aiNextVisitInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold focus:border-blue-500 focus:outline-none">
+              <label class="text-[9px] c-3 uppercase font-semibold block mb-1">Follow-up Schedule</label>
+              <input type="text" id="aiNextVisitInput" class="field w-full p-2 text-xs font-semibold">
             </div>
             <div>
-              <label class="text-[9px] text-slate-400 uppercase font-semibold block mb-1">Risk Evaluation</label>
-              <select id="aiRiskSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold focus:border-blue-500 focus:outline-none">
+              <label class="text-[9px] c-3 uppercase font-semibold block mb-1">Risk Evaluation</label>
+              <select id="aiRiskSelect" class="field w-full p-2 text-xs font-semibold">
                 <option value="Low / Stable">🟢 Low / Stable</option>
                 <option value="Moderate Risk">🟡 Moderate Risk</option>
                 <option value="HIGH RISK">🔴 HIGH RISK</option>
@@ -189,13 +366,13 @@
 
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="text-[9px] text-slate-400 uppercase font-semibold">Prescriptions & Clinical Orders</label>
-              <span class="text-[9px] text-slate-500">Doctor override enabled</span>
+              <label class="text-[9px] c-3 uppercase font-semibold">Prescriptions & Clinical Orders</label>
+              <span class="text-[9px] c-3">Doctor override enabled</span>
             </div>
-            <textarea id="aiActionInput" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-amber-300 font-medium focus:border-blue-500 focus:outline-none resize-none leading-relaxed"></textarea>
+            <textarea id="aiActionInput" rows="3" class="field w-full p-2.5 text-xs c-amber font-medium resize-none leading-relaxed"></textarea>
           </div>
 
-          <button onclick="finishConsultation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl mt-2 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40">
+          <button onclick="finishConsultation()" class="btn btn-green btn-wide w-full font-bold text-xs py-3 mt-2">
             <i class="fa-solid fa-check-circle"></i> Save & Sync Custom Plan to EMR
           </button>
         </div>
@@ -204,14 +381,14 @@
 
     <!-- SECTION: DISCHARGE APPROVALS -->
     <section class="space-y-3">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+      <div class="flex justify-between items-center sep pb-2">
         <div>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-file-signature text-emerald-400"></i> Discharge Approvals
+          <h2 class="text-xs font-bold uppercase tracking-wider c-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-signature c-green"></i> Discharge Approvals
           </h2>
-          <p class="text-[11px] text-slate-400 mt-0.5">Stable inpatients ready for home care</p>
+          <p class="text-[11px] c-3 mt-0.5">Stable inpatients ready for home care</p>
         </div>
-        <span class="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-bold" id="queueCountBadge">0</span>
+        <span class="badge b-amber text-xs" id="queueCountBadge">0</span>
       </div>
 
       <div class="space-y-3" id="doctorDischargeList"></div>
@@ -219,14 +396,14 @@
 
     <!-- SECTION: SHIFT ASSIGNED DUTIES -->
     <section class="space-y-3 mb-6">
-      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-2">Assigned Shift Directives</h3>
+      <h3 class="text-xs font-bold uppercase tracking-wider c-3 sep pb-2">Assigned Shift Directives</h3>
       <div class="space-y-2" id="doctorTasksList">
-        <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+        <div class="glass-sm p-3 flex justify-between items-center text-xs">
           <div>
-            <span class="font-bold text-slate-200 block" id="directiveRoleTitle">Trauma Resuscitation Lead</span>
-            <span class="text-slate-400 text-[11px]" id="directiveStatusText">Emergency Dept &bull; Shift Ends 04:00 PM</span>
+            <span class="font-bold c-ink block" id="directiveRoleTitle">Trauma Resuscitation Lead</span>
+            <span class="c-3 text-[11px]" id="directiveStatusText">Emergency Dept &bull; Shift Ends 04:00 PM</span>
           </div>
-          <span class="text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full font-semibold" id="directiveBadge">Active</span>
+          <span class="badge b-amber" id="directiveBadge">Active</span>
         </div>
       </div>
     </section>
@@ -236,22 +413,22 @@
   <!-- FLOATING CHATBOT WIDGET: DOCTOR CLINICAL COPILOT -->
   <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
     <!-- Chat Window Container -->
-    <div id="doctorCopilotWindow" class="hidden w-80 sm:w-96 h-[440px] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-3">
+    <div id="doctorCopilotWindow" class="hidden glass glass-dark w-80 sm:w-96 h-[440px] flex flex-col overflow-hidden mb-3 pop">
       <!-- Chat Header -->
-      <div class="bg-slate-950 border-b border-slate-800 p-3.5 flex justify-between items-center">
+      <div class="sep p-3.5 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 text-sm font-bold">
+          <div class="w-8 h-8 rounded-xl mark text-sm font-bold">
             <i class="fa-solid fa-stethoscope"></i>
           </div>
           <div>
-            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+            <h4 class="text-xs font-bold c-ink flex items-center gap-1.5">
               Clinical Copilot
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </h4>
-            <p class="text-[10px] text-slate-400">Dr. Arvind's On-Call Clinical Assistant</p>
+            <p class="text-[10px] c-3">Dr. Arvind's On-Call Clinical Assistant</p>
           </div>
         </div>
-        <button onclick="toggleDoctorCopilot()" class="text-slate-400 hover:text-white text-xs p-1">
+        <button onclick="toggleDoctorCopilot()" class="c-3 hover-ink text-xs p-1">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -259,33 +436,33 @@
       <!-- Messages Area -->
       <div id="doctorCopilotMessages" class="flex-grow p-3.5 space-y-3 overflow-y-auto text-xs">
         <div class="flex items-start gap-2">
-          <div class="w-6 h-6 rounded-md bg-blue-600/20 text-blue-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-md mark text-[10px] shrink-0 mt-0.5">
             <i class="fa-solid fa-stethoscope"></i>
           </div>
-          <div class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-slate-200 max-w-[85%] leading-relaxed">
+          <div class="item p-2.5 c-ink max-w-[85%] leading-relaxed">
             Good shift, Dr. Arvind! I am your <strong>Clinical Copilot</strong>. Ask me for quick drug references, ECG guidelines, or triage protocols.
           </div>
         </div>
       </div>
 
       <!-- Quick Action Chips -->
-      <div class="p-2 border-t border-slate-800 bg-slate-950/60 flex gap-1.5 overflow-x-auto text-[10px]">
-        <button onclick="sendDoctorQuickPrompt('What is the emergency protocol for acute Arrhythmia?')" class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded-md hover:border-blue-500 shrink-0 transition-colors">⚡ Arrhythmia Rx</button>
-        <button onclick="sendDoctorQuickPrompt('Standard Troponin-I cutoff protocol?')" class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded-md hover:border-blue-500 shrink-0 transition-colors">🫀 Troponin Cutoff</button>
-        <button onclick="sendDoctorQuickPrompt('What are my next scheduled consultations?')" class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded-md hover:border-blue-500 shrink-0 transition-colors">📅 My OPD Queue</button>
+      <div class="p-2 sep-t flex gap-1.5 overflow-x-auto text-[10px]">
+        <button onclick="sendDoctorQuickPrompt('What is the emergency protocol for acute Arrhythmia?')" class="chip px-2.5 py-1 shrink-0">⚡ Arrhythmia Rx</button>
+        <button onclick="sendDoctorQuickPrompt('Standard Troponin-I cutoff protocol?')" class="chip px-2.5 py-1 shrink-0">🫀 Troponin Cutoff</button>
+        <button onclick="sendDoctorQuickPrompt('What are my next scheduled consultations?')" class="chip px-2.5 py-1 shrink-0">📅 My OPD Queue</button>
       </div>
 
       <!-- Input Bar -->
-      <div class="p-2.5 bg-slate-950 border-t border-slate-800 flex items-center gap-2">
-        <input type="text" id="doctorCopilotInput" onkeydown="handleDoctorCopilotKey(event)" placeholder="Ask clinical copilot..." class="flex-grow bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-        <button onclick="sendDoctorCopilotMessage()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0">
+      <div class="p-2.5 sep-t flex items-center gap-2">
+        <input type="text" id="doctorCopilotInput" onkeydown="handleDoctorCopilotKey(event)" placeholder="Ask clinical copilot..." class="field flex-grow rounded-full px-3.5 py-2 text-xs">
+        <button onclick="sendDoctorCopilotMessage()" class="btn btn-red text-xs w-8 h-8 shrink-0">
           <i class="fa-solid fa-paper-plane text-[11px]"></i>
         </button>
       </div>
     </div>
 
     <!-- Floating Toggle Button -->
-    <button onclick="toggleDoctorCopilot()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold p-3.5 rounded-full shadow-2xl flex items-center gap-2 transition-transform hover:scale-105">
+    <button onclick="toggleDoctorCopilot()" class="btn btn-red font-bold p-3.5 gap-2 hover:scale-105">
       <i class="fa-solid fa-stethoscope text-lg"></i>
       <span class="text-xs font-semibold hidden sm:inline">Clinical Copilot</span>
     </button>
@@ -294,7 +471,7 @@
   <script>
     const SUPABASE_URL = "https://etydrijztimnucgmmkgm.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0eWRyaWp6dGltbnVjZ21ta2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzMxOTMsImV4cCI6MjEwNDgwOTE5M30.XqflZmClgHJx14U-NI-ragLiX60bkSK_HqR_i-JBeNE";
-    
+
     const syncChannel = new BroadcastChannel('medflow_hospital_sync');
     let supabaseClient = null;
     let globalRealtimeChannel = null;
@@ -363,17 +540,17 @@
     };
 
     const initialDocAppointments = [
-      { 
-        id: 1, 
-        name: "Karan Mehta", 
-        time: "10:30 AM", 
+      {
+        id: 1,
+        name: "Karan Mehta",
+        time: "10:30 AM",
         reason: "Cardiology Follow-up",
         emrData: "[EMR AUTO-PULL: 10:30 AM]\nPatient reports periodic chest tightness and mild palpitations during exertion. BP elevated at 145/92 mmHg. Baseline ECG suggests borderline sinus tachycardia."
       },
-      { 
-        id: 2, 
-        name: "Anita Rao", 
-        time: "11:15 AM", 
+      {
+        id: 2,
+        name: "Anita Rao",
+        time: "11:15 AM",
         reason: "Pulmonology Consult",
         emrData: "[EMR AUTO-PULL: 11:15 AM]\nPatient presenting with acute wheezing, productive cough, and intermittent fever (101.4°F). SpO2 at 94% on room air. Requires rapid bronchodilator evaluation."
       }
@@ -416,9 +593,9 @@
 
       if (myAppointments.length === 0) {
         list.innerHTML = `
-          <div class="p-4 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-            <i class="fa-solid fa-check-circle text-xl text-blue-400 mb-2"></i>
-            <p class="text-xs font-medium text-slate-300">No more appointments scheduled today.</p>
+          <div class="p-4 text-center c-3 glass-sm">
+            <i class="fa-solid fa-check-circle text-xl c-red mb-2"></i>
+            <p class="text-xs font-medium c-2">No more appointments scheduled today.</p>
           </div>
         `;
         return;
@@ -426,18 +603,18 @@
 
       myAppointments.forEach(apt => {
         list.innerHTML += `
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-sm">
+          <div class="glass-sm p-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs">
+              <div class="w-10 h-10 rounded-full well flex items-center justify-center c-2 font-bold text-xs">
                 ${apt.time}
               </div>
               <div>
-                <h4 class="font-bold text-white text-sm">${apt.name}</h4>
-                <p class="text-[10px] text-slate-400">${apt.reason}</p>
+                <h4 class="font-bold c-ink text-sm">${apt.name}</h4>
+                <p class="text-[10px] c-3">${apt.reason}</p>
               </div>
             </div>
-            <button onclick="startConsultation(${apt.id}, '${apt.name}')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow">
-              <i class="fa-solid fa-brain text-cyan-300 text-[11px]"></i> Consult <span class="bg-blue-800 text-[9px] px-1 py-0.5 rounded text-blue-200">AI</span>
+            <button onclick="startConsultation(${apt.id}, '${apt.name}')" class="btn btn-red text-[11px] font-bold px-3 py-2 gap-1.5">
+              <i class="fa-solid fa-brain text-[11px]"></i> Consult <span class="badge b-white text-[9px] px-1.5 py-0">AI</span>
             </button>
           </div>
         `;
@@ -451,24 +628,24 @@
       document.getElementById('doctorAppointmentsList').classList.add('hidden');
       document.getElementById('aiConsultationArea').classList.remove('hidden');
       document.getElementById('consultPatientName').innerText = name;
-      
+
       const notesBox = document.getElementById('doctorNotes');
       const syncStatus = document.getElementById('emrSyncStatus');
       const outputBox = document.getElementById('aiOutputBox');
-      
+
       outputBox.classList.add('hidden');
       notesBox.value = "Streaming authenticated records from Hospital EMR repository...";
-      notesBox.classList.add('text-slate-500', 'animate-pulse');
+      notesBox.classList.add('is-loading', 'animate-pulse');
       syncStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> SYNCING EMR...`;
 
       setTimeout(() => {
         notesBox.value = patient ? patient.emrData.replace("\\n", "\n") : "Standard patient record loaded.";
-        notesBox.classList.remove('text-slate-500', 'animate-pulse');
-        syncStatus.innerHTML = `<i class="fa-solid fa-brain text-purple-400 mr-1"></i> AI INFERRING PLAN...`;
+        notesBox.classList.remove('is-loading', 'animate-pulse');
+        syncStatus.innerHTML = `<i class="fa-solid fa-brain c-red mr-1"></i> AI INFERRING PLAN...`;
 
         setTimeout(() => {
           autoExecuteAIAnalysis(patient ? patient.emrData : '');
-          syncStatus.innerHTML = `<i class="fa-solid fa-check-double text-emerald-400 mr-1"></i> EMR SYNCED &bull; EDITABLE`;
+          syncStatus.innerHTML = `<i class="fa-solid fa-check-double c-green mr-1"></i> EMR SYNCED &bull; EDITABLE`;
         }, 700);
 
       }, 800);
@@ -486,8 +663,8 @@
         nextVisit = "In 4 Days";
         riskLevel = "Moderate Risk";
         action = "Prescribe targeted bronchodilator & oral antibiotics. Order Complete Blood Count (CBC) and Chest Radiograph.";
-      } 
-      
+      }
+
       if (notes.includes('pain') || notes.includes('tightness') || notes.includes('chest') || notes.includes('palpitation') || notes.includes('severe')) {
         nextVisit = "Within 24 Hours";
         riskLevel = "HIGH RISK";
@@ -529,10 +706,10 @@
 
       if (dischargePatients.length === 0) {
         container.innerHTML = `
-          <div class="p-6 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-            <i class="fa-solid fa-circle-check text-2xl text-emerald-400 mb-2"></i>
-            <p class="text-xs font-bold text-slate-300">All Recommended Discharges Approved</p>
-            <p class="text-[11px] text-slate-500">Hospital beds have been freed for emergency incoming.</p>
+          <div class="p-6 text-center c-3 glass-sm">
+            <i class="fa-solid fa-circle-check text-2xl c-green mb-2"></i>
+            <p class="text-xs font-bold c-2">All Recommended Discharges Approved</p>
+            <p class="text-[11px] c-3">Hospital beds have been freed for emergency incoming.</p>
           </div>
         `;
         return;
@@ -540,27 +717,27 @@
 
       dischargePatients.forEach(p => {
         container.innerHTML += `
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
+          <div class="glass-sm p-4 space-y-3">
             <div class="flex justify-between items-start">
               <div>
-                <h4 class="font-bold text-white text-sm">${p.name} <span class="text-slate-400 font-normal text-xs">(${p.age}y)</span></h4>
-                <p class="text-[11px] text-slate-400">${p.ward}</p>
+                <h4 class="font-bold c-ink text-sm">${p.name} <span class="c-3 font-normal text-xs">(${p.age}y)</span></h4>
+                <p class="text-[11px] c-3">${p.ward}</p>
               </div>
-              <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">Ready for Home Care</span>
+              <span class="badge b-green text-[10px]">Ready for Home Care</span>
             </div>
 
-            <div class="text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 space-y-1">
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Diagnosis & Vitals:</span>
-              <p class="text-slate-200 font-medium">${p.diagnosis}</p>
-              <p class="text-emerald-400 text-[11px] font-mono">${p.vitals}</p>
+            <div class="text-xs well p-2.5 space-y-1">
+              <span class="c-3 block text-[10px] uppercase font-semibold">Diagnosis & Vitals:</span>
+              <p class="c-ink font-medium">${p.diagnosis}</p>
+              <p class="c-green text-[11px] font-mono">${p.vitals}</p>
             </div>
 
-            <div class="text-[11px] text-slate-300">
-              <p><i class="fa-solid fa-pills text-purple-400 mr-1"></i> ${p.meds}</p>
-              <p class="mt-0.5"><i class="fa-solid fa-kit-medical text-emerald-400 mr-1"></i> ${p.homeKit}</p>
+            <div class="text-[11px] c-2">
+              <p><i class="fa-solid fa-pills c-red mr-1"></i> ${p.meds}</p>
+              <p class="mt-0.5"><i class="fa-solid fa-kit-medical c-green mr-1"></i> ${p.homeKit}</p>
             </div>
 
-            <button onclick="approveDischarge(${p.id})" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-1.5">
+            <button onclick="approveDischarge(${p.id})" class="btn btn-green btn-wide w-full font-bold text-xs py-2.5 gap-1.5">
               <i class="fa-solid fa-check-double"></i> Authorize Home Discharge & Free Bed
             </button>
           </div>
@@ -611,7 +788,7 @@
 
     function claimEmergencyResponse() {
       dismissEmergencyModal();
-      
+
       const banner = document.getElementById('activeAttendingBanner');
       banner.classList.remove('hidden');
       document.getElementById('attendingDetails').innerText = `${activeAlarmCall.bed} • ${activeAlarmCall.patient}`;
@@ -629,16 +806,16 @@
 
     function acceptShiftDuty() {
       hideModal('shiftDirectiveModal');
-      
+
       const title = document.getElementById('shiftModalTitle').innerText;
       const ward = document.getElementById('shiftModalWard').innerText;
-      
+
       document.getElementById('directiveRoleTitle').innerText = title;
       document.getElementById('directiveStatusText').innerText = `${ward} • Reporting On-Site`;
-      
+
       const badge = document.getElementById('directiveBadge');
       badge.innerText = "Accepted";
-      badge.className = "text-[#34D399] bg-[#34D399]/10 border border-[#34D399]/20 px-2.5 py-1 rounded-full font-semibold";
+      badge.className = "badge b-green";
 
       broadcastToCloud({
         type: 'SHIFT_ACCEPTED',
@@ -765,16 +942,16 @@
 
       const msgHtml = isUser ? `
         <div class="flex items-start justify-end gap-2">
-          <div class="bg-blue-600 text-white p-2.5 rounded-xl rounded-tr-none text-xs max-w-[85%] leading-relaxed">
+          <div class="bubble-user p-2.5 text-xs max-w-[85%] leading-relaxed">
             ${text}
           </div>
         </div>
       ` : `
         <div class="flex items-start gap-2">
-          <div class="w-6 h-6 rounded-md bg-blue-600/20 text-blue-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-md mark text-[10px] shrink-0 mt-0.5">
             <i class="fa-solid fa-stethoscope"></i>
           </div>
-          <div class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-slate-200 text-xs max-w-[85%] leading-relaxed">
+          <div class="item p-2.5 c-ink text-xs max-w-[85%] leading-relaxed">
             ${text}
           </div>
         </div>
