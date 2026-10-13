@@ -221,6 +221,14 @@
   @keyframes ecgfill{to{stroke-dashoffset:0}}
 
   </style>
+  <style>
+    .login-screen{background:
+      radial-gradient(60vw 50vw at 85% 10%,rgba(229,48,60,.25),transparent 60%),
+      radial-gradient(70vw 60vw at 20% 110%,rgba(229,48,60,.16),transparent 60%),
+      linear-gradient(180deg,#0d0507,#1a080c 60%,#0d0507)}
+    @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+    .shake{animation:shake .4s}
+  </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -246,6 +254,53 @@
     })();
   </script>
 
+  <!-- DOCTOR LOGIN (department + doctor come from DOCTOR_DIRECTORY in the script) -->
+  <div id="loginScreen" class="login-screen fixed inset-0 z-[90] overflow-y-auto flex items-center justify-center p-4">
+    <div id="loginCard" class="glass glass-dark w-full max-w-sm p-6 space-y-5 pop my-auto">
+      <div class="text-center space-y-3">
+        <div class="logo-plate mx-auto" style="width:230px;padding:12px 18px;border-radius:20px">
+          <img src="assets/img/logo-full.jpg" alt="SRM Prime Hospital, Ramapuram">
+        </div>
+        <div>
+          <span class="badge b-red text-[10px] font-bold tracking-widest uppercase">Doctor Sign-In</span>
+          <h2 class="text-xl font-extrabold c-ink mt-2">Welcome, Doctor</h2>
+          <p class="text-xs c-3 mt-1">Choose your department and name to open your duty dashboard.</p>
+        </div>
+      </div>
+
+      <form id="loginForm" onsubmit="submitLogin(event)" class="space-y-3 text-xs" autocomplete="off">
+        <div>
+          <label for="loginDept" class="block c-3 mb-1">Department</label>
+          <select id="loginDept" onchange="onLoginDeptChange()" class="field w-full p-2.5"></select>
+        </div>
+        <div>
+          <label for="loginDoctor" class="block c-3 mb-1">Doctor</label>
+          <select id="loginDoctor" class="field w-full p-2.5"></select>
+        </div>
+        <div>
+          <label for="loginPassword" class="block c-3 mb-1">Password</label>
+          <div class="relative">
+            <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="off" class="field w-full p-2.5 pr-10">
+            <button type="button" onclick="toggleLoginPassword()" aria-label="Show or hide password" class="absolute right-2 top-1/2 -translate-y-1/2 c-3 hover-ink p-1.5">
+              <i id="loginEye" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <p id="loginError" class="hidden text-[11px] c-red flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-exclamation"></i> Incorrect password for the selected doctor.
+        </p>
+        <button type="submit" class="btn btn-red btn-wide w-full font-bold text-sm py-3 gap-2">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
+      </form>
+      <p class="text-[10px] c-3 text-center">Demo password: first name followed by 07 (for example Rajesh07).</p>
+    </div>
+  </div>
+  <script>
+    /* avoid a login flash on reload when this tab is already signed in */
+    try { if (sessionStorage.getItem('medflow_doc_session')) document.getElementById('loginScreen').classList.replace('flex','hidden'); } catch(e){}
+  </script>
+
   <!-- TOP BAR -->
   <header class="sticky top-0 z-40 px-3 pt-3">
     <div class="max-w-md mx-auto nav-glass px-4 py-3 flex justify-between items-center">
@@ -255,15 +310,20 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-sm font-bold c-ink">Dr. Arvind Swaminathan</h1>
+            <h1 class="text-sm font-bold c-ink" id="docHeaderName">Doctor</h1>
             <span class="badge b-green text-[10px]">ON DUTY</span>
           </div>
-          <p class="text-[11px] c-3">Emergency Lead &bull; SRM Prime, Ramapuram</p>
+          <p class="text-[11px] c-3" id="docHeaderRole">SRM Prime, Ramapuram</p>
         </div>
       </div>
-      <button onclick="simulateIncomingAlarm()" class="btn btn-soft-red text-xs px-2.5 py-1.5 gap-1">
-        <i class="fa-solid fa-bell text-[10px]"></i> Test Alarm
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button onclick="simulateIncomingAlarm()" class="btn btn-soft-red text-xs px-2.5 py-1.5 gap-1">
+          <i class="fa-solid fa-bell text-[10px]"></i> Test Alarm
+        </button>
+        <button onclick="logoutDoctor()" title="Sign out" aria-label="Sign out" class="btn btn-ghost c-2 w-8 h-8 text-xs">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -470,7 +530,7 @@
               Clinical Copilot
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </h4>
-            <p class="text-[10px] c-3">Dr. Arvind's On-Call Clinical Assistant</p>
+            <p class="text-[10px] c-3" id="copilotSubtitle">On-Call Clinical Assistant</p>
           </div>
         </div>
         <button onclick="toggleDoctorCopilot()" class="c-3 hover-ink text-xs p-1">
@@ -485,7 +545,7 @@
             <i class="fa-solid fa-stethoscope"></i>
           </div>
           <div class="item p-2.5 c-ink max-w-[85%] leading-relaxed">
-            Good shift, Dr. Arvind! I am your <strong>Clinical Copilot</strong>. Ask me for quick drug references, ECG guidelines, or triage protocols.
+            Good shift, Doctor! I am your <strong>Clinical Copilot</strong>. Ask me for quick drug references, ECG guidelines, or triage protocols.
           </div>
         </div>
       </div>
@@ -584,22 +644,86 @@
       symptoms: "Sudden Arrhythmia / BP drop to 70/40 mmHg"
     };
 
-    const initialDocAppointments = [
+    // ----------------------------------------------------
+    // DOCTOR DIRECTORY: same doctors / departments as manager.html
+    // (medicalSpecialties + dynamicIndianStaff). Keep both files in sync.
+    // The login screen and all appointment routing are built from this list.
+    // ----------------------------------------------------
+    const DOCTOR_DIRECTORY = [
+      { name: "Dr. Arvind Swaminathan", dept: "Cardiology",           role: "Chief Cardiologist",          ward: "Emergency Room",      duty: "Acute Trauma Surge Support",          shift: "08:00 AM – 04:00 PM" },
+      { name: "Dr. Priya Nair",         dept: "Pulmonology",          role: "Pulmonologist / Intensivist", ward: "ICU Ward A",          duty: "Ventilator Checks & OPD Asthma Desk", shift: "02:00 PM – 08:00 PM" },
+      { name: "Dr. Amit Mukherjee",     dept: "Orthopedics & Trauma", role: "Orthopedic Surgeon",          ward: "Operation Theatre 2", duty: "Trauma Reconstruction & Surgeries",   shift: "05:00 PM – 09:00 PM" },
+      { name: "Dr. Sunita Rao",         dept: "Neurology",            role: "Consultant Neurologist",      ward: "Neuro Clinic",        duty: "EEG Reviews & Stroke Recovery",       shift: "09:00 AM – 03:00 PM" },
+      { name: "Dr. Vikram Malhotra",    dept: "Gastroenterology",     role: "Gastroenterologist",          ward: "Endoscopy Unit",      duty: "Digestive Care & OPD Consults",       shift: "11:00 AM – 05:00 PM" },
+      { name: "Dr. Rajesh Sharma",      dept: "General Medicine",     role: "Emergency & General Lead",    ward: "Emergency Intake",    duty: "Trauma Triage & Acute Resuscitation", shift: "08:00 AM – 04:00 PM" }
+    ].map(d => ({ ...d, id: d.name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '') }));
+
+    const normName = n => String(n || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const findDoctorByName = n => DOCTOR_DIRECTORY.find(d => normName(d.name) === normName(n)) || null;
+    const firstName = n => String(n).replace(/^Dr\.?\s+/i, '').trim().split(/\s+/)[0];
+    const shortName = d => 'Dr. ' + firstName(d.name);
+    const expectedPassword = d => firstName(d.name) + '07';      // e.g. Rajesh07
+
+    const SESSION_KEY = 'medflow_doc_session';                   // sessionStorage: one doctor per browser tab
+    const apptKey = d => 'medflow_doc_apts_' + d.id;             // each doctor has their OWN appointment list
+    const doneKey = d => 'medflow_doc_done_' + d.id;             // ids this doctor has already completed
+
+    let currentDoctor = null;
+    let pendingEvents = [];                                      // alarms that arrive while nobody is signed in
+    const seenSyncIds = new Set();
+
+    // First-time appointments per doctor (ids match the defaults in manager.html)
+    const SEED_APPOINTMENTS = [
       {
-        id: 1,
-        name: "Karan Mehta",
-        time: "10:30 AM",
-        reason: "Cardiology Follow-up",
+        id: 1, doctor: "Dr. Arvind Swaminathan", name: "Karan Mehta", time: "10:30 AM", reason: "Cardiology Follow-up",
         emrData: "[EMR AUTO-PULL: 10:30 AM]\nPatient reports periodic chest tightness and mild palpitations during exertion. BP elevated at 145/92 mmHg. Baseline ECG suggests borderline sinus tachycardia."
       },
       {
-        id: 2,
-        name: "Anita Rao",
-        time: "11:15 AM",
-        reason: "Pulmonology Consult",
+        id: 2, doctor: "Dr. Priya Nair", name: "Anita Rao", time: "11:15 AM", reason: "Pulmonology Consult",
         emrData: "[EMR AUTO-PULL: 11:15 AM]\nPatient presenting with acute wheezing, productive cough, and intermittent fever (101.4°F). SpO2 at 94% on room air. Requires rapid bronchodilator evaluation."
+      },
+      {
+        id: 3, doctor: "Dr. Amit Mukherjee", name: "Gaurav Sen", time: "12:00 PM", reason: "Orthopedics Follow-up",
+        emrData: "[EMR AUTO-PULL: 12:00 PM]\nPatient attending post-fracture review for cast removal. Swelling has resolved and range of motion is improving. Follow-up radiograph requested before cast removal."
       }
     ];
+
+    function toDoctorAppointment(a) {
+      return {
+        id: a.id,
+        doctor: a.doctor,
+        name: a.patientName,
+        time: "Scheduled",
+        reason: `${a.dept} • ${a.reason}`,
+        emrData: `[EMR AUTO-PULL: Live Sync]\nPatient: ${a.patientName}. Assigned: ${a.doctor}. Department: ${a.dept}. Reason for consult: ${a.reason}. Triage status clear.`
+      };
+    }
+
+    function readDoctorAppointments(doc) {
+      const saved = getStore(apptKey(doc), null);
+      if (Array.isArray(saved)) return saved;
+      return SEED_APPOINTMENTS.filter(a => normName(a.doctor) === normName(doc.name));
+    }
+    function saveDoctorAppointments(doc, list) { setStore(apptKey(doc), list); }
+
+    // Build the list shown to one doctor: their own store + their bookings from the manager's list
+    function loadAppointmentsFor(doc) {
+      let list = readDoctorAppointments(doc).slice();
+      const done = getStore(doneKey(doc), []);
+      const managerList = getStore('medflow_appointments', null);   // manager's bookings (same browser)
+      if (Array.isArray(managerList)) {
+        managerList.forEach(a => {
+          const open = a.status !== 'Finished' && a.status !== 'Attended';
+          if (open && normName(a.doctor) === normName(doc.name) && !done.includes(a.id) && !list.some(x => x.id === a.id)) {
+            list.unshift(toDoctorAppointment(a));
+          }
+        });
+        list = list.filter(x => managerList.some(a => a.id === x.id));   // drop ones the manager cancelled
+      }
+      list = list.filter(x => !done.includes(x.id));
+      saveDoctorAppointments(doc, list);
+      return list;
+    }
 
     const initialDocDischarges = [
       {
@@ -624,7 +748,7 @@
       }
     ];
 
-    let myAppointments = getStore('medflow_doc_appointments', initialDocAppointments);
+    let myAppointments = [];
     let dischargePatients = getStore('medflow_doc_discharge', initialDocDischarges);
     let dischargedNames = getStore('medflow_discharged_names', []);
     let currentConsultationId = null;
@@ -732,15 +856,20 @@
       const finishedPatient = myAppointments.find(a => a.id === currentConsultationId);
       const patientName = finishedPatient ? finishedPatient.name : '';
 
-      myAppointments = myAppointments.filter(a => a.id !== currentConsultationId);
-      setStore('medflow_doc_appointments', myAppointments);
+      const doneId = currentConsultationId;
+
+      myAppointments = myAppointments.filter(a => a.id !== doneId);
+      saveDoctorAppointments(currentDoctor, myAppointments);
+      const doneList = getStore(doneKey(currentDoctor), []);
+      if (!doneList.includes(doneId)) { doneList.push(doneId); setStore(doneKey(currentDoctor), doneList); }
       renderAppointments();
       closeConsultation();
 
       broadcastToCloud({
         type: 'APPOINTMENT_COMPLETED',
-        appointmentId: currentConsultationId,
-        patientName: patientName
+        appointmentId: doneId,
+        patientName: patientName,
+        doctorName: currentDoctor.name
       });
     }
 
@@ -841,7 +970,7 @@
       broadcastToCloud({
         type: 'CALL_CLAIMED',
         callId: activeAlarmCall.id,
-        doctorName: "Dr. Arvind Swaminathan (Lead Physician)"
+        doctorName: `${currentDoctor.name} (${currentDoctor.role})`
       });
     }
 
@@ -864,7 +993,7 @@
 
       broadcastToCloud({
         type: 'SHIFT_ACCEPTED',
-        doctorName: "Dr. Arvind Swaminathan",
+        doctorName: currentDoctor.name,
         dutyTitle: title
       });
     }
@@ -888,6 +1017,19 @@
     function handleIncomingSyncDoctor(data) {
       if (!data || !data.type) return;
 
+      // the same message can arrive over BroadcastChannel, storage and Supabase: handle it once
+      if (data._ts) {
+        if (seenSyncIds.has(data._ts)) return;
+        seenSyncIds.add(data._ts);
+        if (seenSyncIds.size > 200) seenSyncIds.delete(seenSyncIds.values().next().value);
+      }
+
+      // nobody signed in yet: hold alarms and shift directives until a doctor logs in
+      if (!currentDoctor && (data.type === 'EMERGENCY_ALARM_TRIGGERED' || data.type === 'SHIFT_REASSIGNMENT_DISPATCHED')) {
+        pendingEvents.push({ data, at: Date.now() });
+        return;
+      }
+
       if (data.type === 'EMERGENCY_ALARM_TRIGGERED') {
         activeAlarmCall = {
           id: data.call.id,
@@ -903,6 +1045,9 @@
       }
 
       if (data.type === 'SHIFT_REASSIGNMENT_DISPATCHED') {
+        // a directive addressed to one doctor must not pop up for the others
+        const target = data.directive && data.directive.doctorName;
+        if (target && normName(target) !== normName(currentDoctor.name)) return;
         document.getElementById('shiftModalTitle').innerText = data.directive.role || "Emergency Surge Duty";
         document.getElementById('shiftModalWard').innerText = `Target: ${data.directive.targetWard || "Emergency Room"}`;
         document.getElementById('shiftModalInstruction').innerText = data.directive.instruction || "Critical patient influx reported. Please report immediately.";
@@ -911,24 +1056,33 @@
       }
 
       if (data.type === 'NEW_APPOINTMENT') {
+        // route to the doctor the booking was made for, and ONLY that doctor
         const apt = data.appointment;
-        if (!myAppointments.some(a => a.id === apt.id)) {
-          myAppointments.unshift({
-            id: apt.id,
-            name: apt.patientName,
-            time: "Scheduled",
-            reason: `${apt.dept} • ${apt.reason}`,
-            emrData: `[EMR AUTO-PULL: Live Sync]\nPatient: ${apt.patientName}. Assigned: ${apt.doctor}. Department: ${apt.dept}. Reason for consult: ${apt.reason}. Triage status clear.`
-          });
-          setStore('medflow_doc_appointments', myAppointments);
+        const target = apt && findDoctorByName(apt.doctor);
+        if (!target) return;
+        const list = readDoctorAppointments(target).slice();
+        if (!list.some(a => a.id === apt.id)) {
+          list.unshift(toDoctorAppointment(apt));
+          saveDoctorAppointments(target, list);       // saved even if that doctor is not signed in right now
+        }
+        if (currentDoctor && currentDoctor.id === target.id) {
+          myAppointments = list;
           renderAppointments();
         }
       }
 
       if (data.type === 'APPOINTMENT_REMOVED') {
-        myAppointments = myAppointments.filter(a => a.id !== data.appointmentId && a.name !== data.patientName);
-        setStore('medflow_doc_appointments', myAppointments);
-        renderAppointments();
+        DOCTOR_DIRECTORY.forEach(d => {
+          const list = readDoctorAppointments(d);
+          const next = list.filter(a => data.appointmentId != null ? a.id !== data.appointmentId : a.name !== data.patientName);
+          if (next.length !== list.length) {
+            saveDoctorAppointments(d, next);
+            if (currentDoctor && currentDoctor.id === d.id) {
+              myAppointments = next;
+              renderAppointments();
+            }
+          }
+        });
       }
 
       if (data.type === 'SYNC_PATIENTS') {
@@ -1039,13 +1193,134 @@
       return `Clinical advisory logged. For immediate drug references, contraindications, or telemetry triage, let me know.`;
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      renderDischargeList();
-      renderAppointments();
+    // ----------------------------------------------------
+    // DOCTOR LOGIN + SESSION
+    // ----------------------------------------------------
+    function populateLoginDepartments() {
+      const sel = document.getElementById('loginDept');
+      sel.innerHTML = '';
+      [...new Set(DOCTOR_DIRECTORY.map(d => d.dept))].forEach(dept => {
+        const o = document.createElement('option');
+        o.value = dept; o.textContent = dept;
+        sel.appendChild(o);
+      });
+      onLoginDeptChange();
+    }
 
-      setTimeout(() => {
-        broadcastToCloud({ type: 'REQUEST_PATIENT_SYNC' });
-      }, 500);
+    function onLoginDeptChange() {
+      const dept = document.getElementById('loginDept').value;
+      const sel = document.getElementById('loginDoctor');
+      sel.innerHTML = '';
+      DOCTOR_DIRECTORY.filter(d => d.dept === dept).forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.id; o.textContent = d.name;
+        sel.appendChild(o);
+      });
+      document.getElementById('loginError').classList.add('hidden');
+    }
+
+    function toggleLoginPassword() {
+      const input = document.getElementById('loginPassword');
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      document.getElementById('loginEye').className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    }
+
+    function submitLogin(e) {
+      e.preventDefault();
+      const doc = DOCTOR_DIRECTORY.find(d => d.id === document.getElementById('loginDoctor').value);
+      const input = document.getElementById('loginPassword');
+      const typed = input.value.trim().toLowerCase();
+
+      if (doc && typed === expectedPassword(doc).toLowerCase()) {
+        try { sessionStorage.setItem(SESSION_KEY, doc.id); } catch(err) {}
+        input.value = '';
+        document.getElementById('loginError').classList.add('hidden');
+        hideModal('loginScreen');
+        bootDoctorSession(doc);
+      } else {
+        document.getElementById('loginError').classList.remove('hidden');
+        input.value = '';
+        input.focus();
+        const card = document.getElementById('loginCard');
+        card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+      }
+    }
+
+    function resetCopilot() {
+      document.getElementById('doctorCopilotMessages').innerHTML = `
+        <div class="flex items-start gap-2">
+          <div class="w-6 h-6 rounded-md mark text-[10px] shrink-0 mt-0.5">
+            <i class="fa-solid fa-stethoscope"></i>
+          </div>
+          <div class="item p-2.5 c-ink max-w-[85%] leading-relaxed">
+            Good shift, ${shortName(currentDoctor)}! I am your <strong>Clinical Copilot</strong>. Ask me for quick drug references, ECG guidelines, or triage protocols.
+          </div>
+        </div>
+      `;
+    }
+
+    function bootDoctorSession(doc) {
+      currentDoctor = doc;
+
+      document.getElementById('docHeaderName').innerText = doc.name;
+      document.getElementById('docHeaderRole').innerHTML = `${doc.role} &bull; SRM Prime, Ramapuram`;
+      document.getElementById('copilotSubtitle').innerText = `${shortName(doc)}'s On-Call Clinical Assistant`;
+      resetCopilot();
+
+      // this doctor's own shift directive card
+      document.getElementById('directiveRoleTitle').innerText = doc.duty;
+      document.getElementById('directiveStatusText').innerText = `${doc.ward} • Shift ${doc.shift}`;
+      const badge = document.getElementById('directiveBadge');
+      badge.innerText = "Active";
+      badge.className = "badge b-amber";
+
+      // only this doctor's appointments
+      myAppointments = loadAppointmentsFor(doc);
+      currentConsultationId = null;
+      closeConsultation();
+      document.getElementById('aiOutputBox').classList.add('hidden');
+      clearAttendingStatus();
+      renderAppointments();
+      renderDischargeList();
+
+      setTimeout(() => { broadcastToCloud({ type: 'REQUEST_PATIENT_SYNC' }); }, 300);
+
+      // replay recent alarms that arrived before sign-in
+      const queued = pendingEvents.splice(0);
+      queued.forEach(q => {
+        if (Date.now() - q.at < 10 * 60 * 1000) {
+          if (q.data._ts) seenSyncIds.delete(q.data._ts);
+          handleIncomingSyncDoctor(q.data);
+        }
+      });
+    }
+
+    function logoutDoctor() {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+      currentDoctor = null;
+      myAppointments = [];
+      currentConsultationId = null;
+      hideModal('emergencyAlarmModal');
+      hideModal('shiftDirectiveModal');
+      document.getElementById('doctorCopilotWindow').classList.add('hidden');
+      closeConsultation();
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').classList.add('hidden');
+      showModal('loginScreen');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      populateLoginDepartments();
+      let savedId = null;
+      try { savedId = sessionStorage.getItem(SESSION_KEY); } catch(e) {}
+      const saved = DOCTOR_DIRECTORY.find(d => d.id === savedId);
+      if (saved) {
+        hideModal('loginScreen');
+        bootDoctorSession(saved);
+      } else {
+        showModal('loginScreen');
+      }
     });
   </script>
 </body>

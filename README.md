@@ -16,3 +16,10 @@ To see cross-window sync, open `manager.html` and `doctor.html` in two tabs.
 
 ## Deploy (GitHub Pages)
 Settings → Pages → Deploy from branch → `main` / root. Keep `assets/` next to the HTML files.
+
+## Doctor login (demo)
+`doctor.html` opens on a sign-in screen. Pick department, then doctor. Password = **first name + `07`**
+(e.g. `Rajesh07`, `Arvind07`; not case-sensitive). The doctor list lives in `DOCTOR_DIRECTORY`
+at the top of the script in `doctor.html` and mirrors `medicalSpecialties` / `dynamicIndianStaff` in `manager.html`;
+if you add a doctor, add them in both files. Each doctor only sees their own appointments.
+This is client-side demo authentication only, not real security.

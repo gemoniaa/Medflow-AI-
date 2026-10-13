@@ -1525,7 +1525,8 @@
       if (!data || !data.type) return;
 
       if (data.type === 'APPOINTMENT_COMPLETED') {
-        const apt = appointments.find(a => a.id === data.appointmentId || a.patientName === data.patientName);
+        const apt = appointments.find(a => a.id === data.appointmentId)
+          || appointments.find(a => a.patientName === data.patientName && (!data.doctorName || a.doctor === data.doctorName));
         if (apt) {
           apt.status = "Finished";
           setStore('medflow_appointments', appointments);
