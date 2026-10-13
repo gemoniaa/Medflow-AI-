@@ -291,6 +291,14 @@
     .rx-sheet .stamp.bad{border-color:#d92332;color:#d92332;background:rgba(217,35,50,.06)}
     .rx-sheet .stamp.bad span{color:#8a2a32}
     .rx-sheet .sigstat{display:block;margin-top:4px;color:#8a2a32;font-size:9.5px}
+    .rx-sheet.bill{margin-top:14px;animation:none}
+    .rx-sheet .bt{width:100%;border-collapse:collapse;margin-top:12px;font-size:11px}
+    .rx-sheet .bt th{background:#d92332;color:#fff;text-align:left;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:6px 8px}
+    .rx-sheet .bt td{padding:6px 8px;border-bottom:1px solid #e3e3e8;vertical-align:top}
+    .rx-sheet .bt .n{text-align:right;white-space:nowrap}
+    .rx-sheet .bt tr.tot td{border-bottom:0;font-weight:800;font-size:12.5px;background:#f5f5f7}
+    .rx-sheet .paystat{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid #d92332;border-radius:8px;padding:7px 10px;font-size:10px;color:#d92332;font-weight:700}
+    .rx-sheet .bnote{margin-top:8px;font-size:9px;color:#6b6b73;line-height:1.45}
     .rx-sheet .foot{margin-top:12px;padding-top:8px;border-top:1px solid #e3e3e8;font-size:9px;color:#6b6b73;display:flex;justify-content:space-between;gap:8px}
   </style>
 </head>
@@ -933,13 +941,13 @@
           <div class="pr-out"><div class="pr-paper"><div class="hd"></div><i style="width:100%"></i><i></i><i></i><i></i><i></i><i></i></div></div>
         </div>
         <div id="rxProgressWrap"><div class="pr-progress"><div></div></div></div>
-        <p id="rxStatus" class="text-xs c-2 mt-3 font-medium">Printing prescription&hellip;</p>
+        <p id="rxStatus" class="text-xs c-2 mt-3 font-medium">Printing prescription &amp; bill&hellip;</p>
       </div>
 
       <div id="rxSheetWrap" class="hidden"></div>
 
       <button id="rxDownloadBtn" onclick="downloadPrescription()" class="hidden btn btn-red btn-wide w-full font-bold text-sm py-3 gap-2">
-        <i class="fa-solid fa-download"></i> Download Prescription (PDF)
+        <i class="fa-solid fa-download"></i> Download Prescription &amp; Bill (PDF)
       </button>
     </div>
   </div>
@@ -1891,6 +1899,66 @@
         </div></div></div>`;
     }
 
+    // ----- Bill: consultation by department + diagnostics detected in the doctor's orders (demo tariff, edit here) -----
+    const BILL_CONSULT = { 'Cardiology': 800, 'Pulmonology': 700, 'Orthopedics & Trauma': 700, 'Neurology': 800, 'Gastroenterology': 700, 'General Medicine': 500 };
+    const BILL_CONSULT_DEFAULT = 500, BILL_REGISTRATION = 100;
+    const BILL_TESTS = [
+      [/\bcbc\b|complete blood count/i, 'Complete Blood Count (CBC)', 350],
+      [/\becg\b|electrocardiogram/i, '12-lead ECG', 300],
+      [/troponin/i, 'Troponin-I (cardiac biomarker)', 900],
+      [/telemetry/i, 'Continuous telemetry monitoring', 1200],
+      [/x-?ray|radiograph/i, 'X-ray / Radiograph', 500],
+      [/\bmri\b/i, 'MRI scan', 6500],
+      [/\bct\b|ct scan/i, 'CT scan', 4500],
+      [/ultrasound|\busg\b|sonograph/i, 'Ultrasound scan', 900],
+      [/\becho\b|echocardiogram/i, 'Echocardiogram', 1500],
+      [/\beeg\b/i, 'EEG', 1800],
+      [/lipid/i, 'Lipid profile', 600],
+      [/hba1c/i, 'HbA1c', 500],
+      [/blood sugar|blood glucose|fasting glucose|\bfbs\b|\brbs\b/i, 'Blood glucose', 120],
+      [/\blft\b|liver function/i, 'Liver function test', 700],
+      [/\bkft\b|\brft\b|renal function|kidney function/i, 'Renal function test', 700],
+      [/endoscopy/i, 'Upper GI endoscopy', 3500]
+    ];
+    function buildBill(rx) {
+      const items = [
+        { desc: 'OPD registration', qty: 1, rate: BILL_REGISTRATION },
+        { desc: 'Consultation \u2022 ' + (rx.dept || 'General Medicine') + ' \u2022 ' + rx.doctorName, qty: 1, rate: BILL_CONSULT[rx.dept] || BILL_CONSULT_DEFAULT }
+      ];
+      const ord = String(rx.orders || '');
+      BILL_TESTS.forEach(t => { if (t[0].test(ord)) items.push({ desc: t[1], qty: 1, rate: t[2] }); });
+      items.forEach(i => { i.amt = i.qty * i.rate; });
+      return { billNo: 'BL-' + String(rx.rxNo).replace(/^RX-/, ''), items: items, total: items.reduce((a, i) => a + i.amt, 0) };
+    }
+    const inr = n => Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const BILL_NOTE_1 = 'Medicines listed in the prescription are billed separately at the hospital pharmacy when dispensed.';
+    const BILL_NOTE_2 = 'Healthcare services are exempt from GST. Rates shown are the standard OPD demonstration tariff.';
+
+    function renderBillSheet(rx) {
+      const b = buildBill(rx);
+      return `
+        <div class="rx-sheet bill">
+          <div class="rx-h">
+            <img src="assets/img/logo-full.jpg" alt="SRM Prime Hospital, Ramapuram">
+            <div class="rx-t"><b>BILL / INVOICE</b><span>Bill No: ${esc(b.billNo)}</span><span>Date: ${esc(rxDateStr(rx.issuedAt))}</span></div>
+          </div>
+          <div class="grid2">
+            <div class="cell"><small>Patient</small><b>${esc(rx.patientName)}</b></div>
+            <div class="cell"><small>Against Rx No</small><b>${esc(rx.rxNo)}</b></div>
+          </div>
+          <table class="bt">
+            <thead><tr><th>#</th><th>Description</th><th class="n">Qty</th><th class="n">Rate (&#8377;)</th><th class="n">Amount (&#8377;)</th></tr></thead>
+            <tbody>
+              ${b.items.map((i, k) => `<tr><td>${k + 1}</td><td>${esc(i.desc)}</td><td class="n">${i.qty}</td><td class="n">${inr(i.rate)}</td><td class="n">${inr(i.amt)}</td></tr>`).join('')}
+              <tr class="tot"><td colspan="4" class="n">TOTAL PAYABLE</td><td class="n">&#8377; ${inr(b.total)}</td></tr>
+            </tbody>
+          </table>
+          <div class="paystat"><span>PAYMENT STATUS: DUE</span><span>Pay at the billing counter</span></div>
+          <div class="bnote">${esc(BILL_NOTE_1)}<br>${esc(BILL_NOTE_2)}</div>
+          <div class="foot"><span>SRM Prime Hospital, Ramapuram &bull; Generated by MedFlow</span><span>ER desk: +91 (044) 4396 9999</span></div>
+        </div>`;
+    }
+
     function renderRxSheet(rx) {
       const notes = cleanNotes(rx.notes);
       const orders = splitOrders(rx.orders);
@@ -1932,7 +2000,7 @@
       sheet.classList.add('hidden'); sheet.innerHTML = '';
       btn.classList.add('hidden');
       stage.classList.remove('hidden');
-      document.getElementById('rxStatus').innerText = 'Printing prescription…';
+      document.getElementById('rxStatus').innerText = 'Printing prescription & bill…';
       document.getElementById('rxModal').classList.remove('hidden');
 
       // restart the CSS animations every time the modal opens
@@ -1945,11 +2013,11 @@
       const printMs = reduce ? 300 : 2700;
       rxTimers.push(setTimeout(() => {
         printer.classList.remove('printing'); printer.classList.add('done');
-        document.getElementById('rxStatus').innerHTML = '<i class="fa-solid fa-circle-check c-green"></i> Prescription ready';
+        document.getElementById('rxStatus').innerHTML = '<i class="fa-solid fa-circle-check c-green"></i> Prescription &amp; bill ready';
       }, printMs));
       rxTimers.push(setTimeout(() => {
         stage.classList.add('hidden');
-        sheet.innerHTML = renderRxSheet(rx);
+        sheet.innerHTML = renderRxSheet(rx) + renderBillSheet(rx);
         sheet.classList.remove('hidden');
         btn.classList.remove('hidden');
       }, printMs + (reduce ? 100 : 700)));
@@ -2108,6 +2176,51 @@
         T(bx + 8, sy - 55, ok ? 'Integrity verified (SHA-256)' : 'Content changed after signing', 8, 'F3', sc);
         y -= 70;
       }
+
+      // ----- bill (always on its own page, attached after the prescription)
+      newPage();
+      const bill = buildBill(rx), RS = 'Rs. ';
+      cur.push(`q ${n2(lw)} 0 0 ${n2(lh)} ${n2(M)} ${n2(y - lh)} cm /Im1 Do Q`);
+      const b1 = 'BILL / INVOICE', b2 = 'Bill No: ' + bill.billNo, b3 = 'Date: ' + rxDateStr(rx.issuedAt);
+      T(W - M - tw(b1, 20, 'F2'), y - 20, b1, 20, 'F2', RED);
+      T(W - M - tw(b2, 9, 'F1'), y - 36, b2, 9, 'F1', GREY);
+      T(W - M - tw(b3, 9, 'F1'), y - 49, b3, 9, 'F1', GREY);
+      y -= lh + 10; L(M, y, W - M, y, RED, 1.4); y -= 16;
+      row(['Patient', rx.patientName], ['Against Rx No', rx.rxNo]);
+      row(['Consulting doctor', rx.doctorName], ['Department', rx.dept]);
+      y -= 6;
+      const cQ = M + 288, cR = M + 388, cA = W - M - 8;   // right edges of Qty / Rate / Amount columns
+      const tHead = () => {
+        R(M, y - 20, CW, 20, RED);
+        T(M + 8, y - 14, '#', 8, 'F2', [1, 1, 1]); T(M + 28, y - 14, 'DESCRIPTION', 8, 'F2', [1, 1, 1]);
+        T(cQ - tw('QTY', 8, 'F2'), y - 14, 'QTY', 8, 'F2', [1, 1, 1]);
+        T(cR - tw('RATE (Rs.)', 8, 'F2'), y - 14, 'RATE (Rs.)', 8, 'F2', [1, 1, 1]);
+        T(cA - tw('AMOUNT (Rs.)', 8, 'F2'), y - 14, 'AMOUNT (Rs.)', 8, 'F2', [1, 1, 1]);
+        y -= 20;
+      };
+      tHead();
+      bill.items.forEach((it, i) => {
+        const ls = wrap(it.desc, cQ - 28 - 40, 10, 'F1'), h = ls.length * 13 + 12;
+        if (y - h < M + 80) { newPage(); T(M, y - 8, `Bill ${bill.billNo} (continued) • ${rx.patientName}`, 8.5, 'F1', GREY); y -= 24; tHead(); }
+        T(M + 8, y - 15, String(i + 1), 10, 'F1', GREY);
+        ls.forEach((ln, k) => T(M + 28, y - 15 - k * 13, ln, 10, 'F1', INK));
+        const q = String(it.qty), r = inr(it.rate), a = inr(it.amt);
+        T(cQ - tw(q, 10, 'F1'), y - 15, q, 10, 'F1', INK);
+        T(cR - tw(r, 10, 'F1'), y - 15, r, 10, 'F1', INK);
+        T(cA - tw(a, 10, 'F1'), y - 15, a, 10, 'F1', INK);
+        y -= h; L(M, y, W - M, y, LINE, 0.6);
+      });
+      R(M, y - 26, CW, 26, LIGHT);
+      const tl = 'TOTAL PAYABLE', tv = RS + inr(bill.total);
+      T(cR - tw(tl, 10.5, 'F2'), y - 17, tl, 10.5, 'F2', INK);
+      T(cA - tw(tv, 12, 'F2'), y - 18, tv, 12, 'F2', RED);
+      y -= 44;
+      cur.push(`${col(RED)} RG 1.1 w ${n2(M)} ${n2(y - 30)} ${n2(CW)} 30 re S`);
+      T(M + 10, y - 19, 'PAYMENT STATUS: DUE', 9.5, 'F2', RED);
+      const ps = 'Pay at the billing counter';
+      T(W - M - 10 - tw(ps, 9, 'F1'), y - 19, ps, 9, 'F1', RED);
+      y -= 46;
+      [BILL_NOTE_1, BILL_NOTE_2].forEach(nt => wrap(nt, CW, 8.5, 'F3').forEach(ln => { T(M, y - 8, ln, 8.5, 'F3', GREY); y -= 11; }));
 
       // ----- footer on every page
       pages.forEach((pg, i) => {

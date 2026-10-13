@@ -27,6 +27,7 @@ This is client-side demo authentication only, not real security.
 ## Prescriptions
 When a doctor taps **Save & Sync Custom Plan to EMR**, the plan (notes, risk, follow-up, orders) is saved and sent to the manager.
 In `manager.html` → **5. Appointments**, attended rows get a **Prescription** button: printer animation, preview, then **Download (PDF)**.
+The preview and the PDF now include a **Bill / Invoice** (its own page after the prescription): OPD registration, consultation fee by department, plus any diagnostics found in the doctor's orders (CBC, ECG, Troponin, X-ray, MRI, CT, etc.). Rates are demo values in `BILL_CONSULT` / `BILL_TESTS` near the top of the prescription script in `manager.html`; edit them there. Medicines are billed at the pharmacy, and the bill is not part of the digital-signature checksum.
 The PDF is generated in the browser with no libraries (works offline); the logo is embedded as base64 inside `manager.html`.
 
 ## Digital signature & zoom lock
