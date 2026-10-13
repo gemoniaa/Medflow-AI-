@@ -812,6 +812,36 @@
   </div>
 
   <!-- Patient Registration Modal -->
+  <!-- Move patient: choose where to put the patient -->
+  <div id="moveModal" class="fixed inset-0 overlay hidden flex items-center justify-center z-50 p-4">
+    <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop max-h-[94vh] overflow-y-auto">
+      <div class="flex justify-between items-center sep pb-3">
+        <div>
+          <h3 class="text-sm font-bold c-ink"><i class="fa-solid fa-people-arrows c-red mr-2"></i>Change Patient Status</h3>
+          <p class="text-[10px] c-3" id="moveSub">Patient</p>
+        </div>
+        <button onclick="closeMoveModal()" aria-label="Close" class="c-3 hover-ink"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="block c-3 mb-1.5 text-xs">Where should this patient be placed?</label>
+        <div id="moveOptions" class="space-y-2"></div>
+      </div>
+      <div>
+        <label class="block c-3 mb-1 text-xs">Ward / bed location</label>
+        <select id="moveWard" class="field w-full p-2.5 text-xs"></select>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="closeMoveModal()" class="btn btn-ghost flex-1 text-xs py-2.5">Cancel</button>
+        <button id="moveConfirmBtn" onclick="confirmMove()" class="btn btn-red flex-1 text-xs font-bold py-2.5 gap-1.5"><i class="fa-solid fa-check"></i> Confirm Move</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Discharge confirmation / completed page -->
+  <div id="dischargeModal" class="fixed inset-0 overlay hidden flex items-center justify-center z-50 p-4">
+    <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop max-h-[94vh] overflow-y-auto" id="dischargeBody"></div>
+  </div>
+
   <div id="patientModal" class="fixed inset-0 overlay hidden flex items-center justify-center z-50 p-4">
     <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop">
       <div class="flex justify-between items-center sep pb-3">
@@ -1043,8 +1073,8 @@
       { id: 2, name: "Ananya Sen", age: 34, risk: "critical", ward: "ICU Ward A", condition: "Acute Respiratory Distress", doctor: "Dr. Priya Nair" },
       { id: 3, name: "Rohan Kulkarni", age: 51, risk: "assistance", ward: "General Ward B", condition: "Post-Op Surgery Monitoring", doctor: "Dr. Amit Mukherjee" },
       { id: 4, name: "Sneha Reddy", age: 28, risk: "assistance", ward: "Emergency Room", condition: "Moderate Concussion", doctor: "Dr. Sunita Rao" },
-      { id: 5, name: "Meera Deshmukh", age: 70, risk: "stable", ward: "General Ward C", condition: "Recovering - Cleared for Home Meds", doctor: "Dr. Kavita Iyer" },
-      { id: 6, name: "Suresh Pillai", age: 42, risk: "stable", ward: "Outpatient Ward", condition: "Minor Injury - Ready for Home Care", doctor: "Dr. Kavita Iyer" }
+      { id: 5, name: "Meera Deshmukh", age: 70, risk: "stable", ward: "General Ward C", condition: "Recovering - Cleared for Home Meds", doctor: "Dr. Rajesh Sharma" },
+      { id: 6, name: "Suresh Pillai", age: 42, risk: "stable", ward: "Outpatient Ward", condition: "Minor Injury - Ready for Home Care", doctor: "Dr. Amit Mukherjee" }
     ];
 
     const defaultAppointments = [
@@ -1427,24 +1457,104 @@
       });
     }
 
+    // ----- Change status: ask where to put the patient (category + ward) -----
+    const PATIENT_STATUSES = [
+      { key: 'critical',   label: 'Critical Priority',        sub: 'Immediate care',            icon: 'fa-heart-pulse',    color: '#ff6b75' },
+      { key: 'assistance', label: 'Under Observation',        sub: 'Monitored',                 icon: 'fa-eye',            color: '#fbbf24' },
+      { key: 'stable',     label: 'Stable',                   sub: 'Eligible for home care',    icon: 'fa-house-medical',  color: '#34d399' }
+    ];
+    const BASE_WARDS = ['Emergency Room', 'ICU Ward A', 'General Ward B', 'Cardiology'];
+    let moveId = null, moveSel = null;
+
     function changePatientRisk(patientId) {
       const p = patients.find(item => item.id === patientId);
       if (!p) return;
-      if (p.risk === 'critical') p.risk = 'assistance';
-      else if (p.risk === 'assistance') p.risk = 'stable';
-      else p.risk = 'critical';
+      moveId = patientId; moveSel = p.risk;
+      document.getElementById('moveSub').innerText = `${p.name} • currently ${statusLabel(p.risk)} • ${p.ward}`;
+      const wards = Array.from(new Set(BASE_WARDS.concat(patients.map(x => x.ward).filter(Boolean))));
+      document.getElementById('moveWard').innerHTML = wards.map(w => `<option value="${esc(w)}" ${w === p.ward ? 'selected' : ''}>${esc(w)}</option>`).join('');
+      renderMoveOptions(p);
+      document.getElementById('moveModal').classList.remove('hidden');
+    }
+    const statusLabel = k => (PATIENT_STATUSES.find(s => s.key === k) || {}).label || k;
+    function renderMoveOptions(p) {
+      document.getElementById('moveOptions').innerHTML = PATIENT_STATUSES.map(s => {
+        const on = s.key === moveSel, cur = s.key === p.risk;
+        return `<button type="button" onclick="pickMove('${s.key}')" class="item w-full text-left p-3 flex items-center gap-3" style="${on ? `outline:2px solid ${s.color};outline-offset:-2px` : ''}">
+          <span style="color:${s.color}"><i class="fa-solid ${s.icon}"></i></span>
+          <span class="flex-1"><b class="c-ink text-xs block">${s.label}</b><span class="c-3 text-[10px]">${s.sub}</span></span>
+          ${cur ? '<span class="badge b-amber text-[9px]">CURRENT</span>' : ''}
+          ${on ? `<i class="fa-solid fa-circle-check" style="color:${s.color}"></i>` : ''}
+        </button>`;
+      }).join('');
+    }
+    function pickMove(k) { moveSel = k; renderMoveOptions(patients.find(x => x.id === moveId)); }
+    function closeMoveModal() { document.getElementById('moveModal').classList.add('hidden'); moveId = null; }
+    function confirmMove() {
+      const p = patients.find(item => item.id === moveId);
+      if (!p) return closeMoveModal();
+      p.risk = moveSel;
+      p.ward = document.getElementById('moveWard').value || p.ward;
       setStore('medflow_patients', patients);
       renderPatients();
-
+      closeMoveModal();
       broadcastToCloud({ type: 'SYNC_PATIENTS', patients: patients });
     }
 
+    // ----- Discharge: confirmation page first, then a completed page -----
+    let dischargeId = null;
     function removePatient(patientId) {
-      patients = patients.filter(item => item.id !== patientId);
+      const p = patients.find(item => item.id === patientId);
+      if (!p) return;
+      dischargeId = patientId;
+      const notStable = p.risk !== 'stable';
+      document.getElementById('dischargeBody').innerHTML = `
+        <div class="text-center space-y-2">
+          <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl c-green" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.4)"><i class="fa-solid fa-house-medical"></i></div>
+          <h3 class="text-base font-bold c-ink">Confirm Discharge</h3>
+          <p class="text-xs c-2">Please review before sending this patient home.</p>
+        </div>
+        <div class="well p-3 text-xs space-y-1">
+          <div class="flex justify-between"><span class="c-3">Patient</span><b class="c-ink">${esc(p.name)} (${esc(p.age)}y)</b></div>
+          <div class="flex justify-between"><span class="c-3">Ward / bed</span><b class="c-ink">${esc(p.ward)}</b></div>
+          <div class="flex justify-between"><span class="c-3">Condition</span><b class="c-ink text-right">${esc(p.condition)}</b></div>
+          <div class="flex justify-between"><span class="c-3">Doctor</span><b class="c-ink">${esc(p.doctor)}</b></div>
+          <div class="flex justify-between"><span class="c-3">Current status</span><b class="c-ink">${statusLabel(p.risk)}</b></div>
+        </div>
+        ${notStable ? `<div class="p-2.5 text-[11px] flex items-start gap-2 rounded-lg" style="background:rgba(229,48,60,.12);border:1px solid rgba(255,107,117,.4);color:#ff9aa1"><i class="fa-solid fa-triangle-exclamation mt-0.5"></i><span>This patient is marked <b>${statusLabel(p.risk)}</b>, not Stable. Discharge only if the treating doctor has cleared them.</span></div>` : ''}
+        <ul class="text-[11px] c-2 space-y-1 list-disc pl-4">
+          <li>The patient is removed from the active list.</li>
+          <li>The bed in ${esc(p.ward)} is released for new admissions.</li>
+          <li>The doctor app is updated instantly.</li>
+        </ul>
+        <div class="flex gap-2">
+          <button onclick="closeDischargeModal()" class="btn btn-ghost flex-1 text-xs py-2.5">Cancel</button>
+          <button onclick="confirmDischarge()" class="btn btn-green flex-1 text-xs font-bold py-2.5 gap-1.5"><i class="fa-solid fa-check-double"></i> Confirm Discharge</button>
+        </div>`;
+      document.getElementById('dischargeModal').classList.remove('hidden');
+    }
+    function closeDischargeModal() { document.getElementById('dischargeModal').classList.add('hidden'); dischargeId = null; }
+    function confirmDischarge() {
+      const p = patients.find(item => item.id === dischargeId);
+      if (!p) return closeDischargeModal();
+      patients = patients.filter(item => item.id !== dischargeId);
       setStore('medflow_patients', patients);
       renderPatients();
-
+      const bedCountEl = document.getElementById('bedCount');
+      if (bedCountEl) {
+        const n = Math.min(100, (parseInt(bedCountEl.innerText) || 12) + 1);
+        bedCountEl.innerText = n;
+        document.getElementById('bedBar').style.width = Math.max(5, 100 - n) + '%';
+      }
       broadcastToCloud({ type: 'SYNC_PATIENTS', patients: patients });
+      document.getElementById('dischargeBody').innerHTML = `
+        <div class="text-center space-y-3 py-2">
+          <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl c-green" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.4)"><i class="fa-solid fa-circle-check"></i></div>
+          <h3 class="text-base font-bold c-ink">Discharge Completed</h3>
+          <p class="text-xs c-2"><b class="c-ink">${esc(p.name)}</b> has been discharged. The bed in ${esc(p.ward)} is now free.</p>
+          <button onclick="closeDischargeModal()" class="btn btn-green w-full text-xs font-bold py-2.5">Done</button>
+        </div>`;
+      dischargeId = null;
     }
 
     function openPatientModal() { document.getElementById('patientModal').classList.remove('hidden'); }

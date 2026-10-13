@@ -340,6 +340,11 @@
     </div>
   </header>
 
+  <!-- POP-UP MODAL: DISCHARGE CONFIRMATION / COMPLETED -->
+  <div id="dischargeConfirmModal" class="fixed inset-0 overlay hidden items-center justify-center z-50 p-4">
+    <div class="glass glass-dark w-full max-w-md p-5 space-y-4 pop max-h-[94vh] overflow-y-auto" id="dischargeConfirmBody"></div>
+  </div>
+
   <!-- POP-UP MODAL: INCOMING EMERGENCY ALARM (CODE RED) -->
   <div id="emergencyAlarmModal" class="fixed inset-0 overlay hidden items-center justify-center z-50 p-4">
     <div class="glass glass-dark tone-red w-full max-w-sm p-6 space-y-4 alarm-flash text-center pop">
@@ -785,6 +790,7 @@
         name: "Meera Deshmukh",
         age: 70,
         ward: "Ward C — Bed 08",
+        doctor: "Dr. Rajesh Sharma",
         diagnosis: "Post-Operative Recovery (Cholecystectomy)",
         vitals: "Stable &bull; BP 122/78 &bull; SpO2 99%",
         homeKit: "Digital Pulse Oximeter + Daily BP Logger",
@@ -795,6 +801,7 @@
         name: "Suresh Pillai",
         age: 42,
         ward: "Outpatient Observation — Bed 03",
+        doctor: "Dr. Amit Mukherjee",
         diagnosis: "Minor Laceration Cleaned & Sutured",
         vitals: "Normal &bull; BP 118/76 &bull; Ambulatory",
         homeKit: "Wound Dressing Kit + 4-day OPD review slip",
@@ -808,6 +815,7 @@
     let currentConsultationId = null;
 
     dischargePatients = dischargePatients.filter(p => !dischargedNames.includes(p.name));
+    dischargePatients.forEach(p => { if (!p.doctor) { const d = initialDocDischarges.find(i => i.name === p.name); if (d) p.doctor = d.doctor; } });
 
     function renderAppointments() {
       const list = document.getElementById('doctorAppointmentsList');
@@ -952,7 +960,9 @@
     function renderDischargeList() {
       const container = document.getElementById('doctorDischargeList');
       container.innerHTML = '';
-      document.getElementById('queueCountBadge').innerText = dischargePatients.length;
+      const canDischarge = p => !!currentDoctor && !!p.doctor && normName(p.doctor) === normName(currentDoctor.name);
+      const mine = dischargePatients.filter(canDischarge);
+      document.getElementById('queueCountBadge').innerText = mine.length;
 
       if (dischargePatients.length === 0) {
         container.innerHTML = `
@@ -965,7 +975,10 @@
         return;
       }
 
-      dischargePatients.forEach(p => {
+      // this doctor's own patients first
+      const ordered = mine.concat(dischargePatients.filter(p => !canDischarge(p)));
+      ordered.forEach(p => {
+        const own = canDischarge(p);
         container.innerHTML += `
           <div class="glass-sm p-4 space-y-3">
             <div class="flex justify-between items-start">
@@ -975,6 +988,7 @@
               </div>
               <span class="badge b-green text-[10px]">Ready for Home Care</span>
             </div>
+            <p class="text-[11px] ${own ? 'c-green' : 'c-3'}"><i class="fa-solid fa-user-doctor mr-1"></i>Assigned doctor: <b class="c-ink">${escH(p.doctor || 'Not assigned')}</b>${own ? ' (you)' : ''}</p>
 
             <div class="text-xs well p-2.5 space-y-1">
               <span class="c-3 block text-[10px] uppercase font-semibold">Diagnosis & Vitals:</span>
@@ -987,17 +1001,62 @@
               <p class="mt-0.5"><i class="fa-solid fa-kit-medical c-green mr-1"></i> ${p.homeKit}</p>
             </div>
 
-            <button onclick="approveDischarge(${p.id})" class="btn btn-green btn-wide w-full font-bold text-xs py-2.5 gap-1.5">
+            ${own ? `<button onclick="approveDischarge(${p.id})" class="btn btn-green btn-wide w-full font-bold text-xs py-2.5 gap-1.5">
               <i class="fa-solid fa-check-double"></i> Authorize Home Discharge & Free Bed
-            </button>
+            </button>` : `<button disabled class="btn btn-ghost btn-wide w-full font-bold text-xs py-2.5 gap-1.5" style="opacity:.55;cursor:not-allowed">
+              <i class="fa-solid fa-lock"></i> Only ${escH(p.doctor || 'the assigned doctor')} can discharge
+            </button>`}
           </div>
         `;
       });
     }
 
+    const escH = x => String(x == null ? '' : x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let pendingDischargeId = null;
+    // Only the doctor a patient is assigned to may discharge them.
+    const isAssignedDoctor = p => !!currentDoctor && !!p && !!p.doctor && normName(p.doctor) === normName(currentDoctor.name);
+
+    // Step 1: show a confirmation page; nothing is discharged until the doctor confirms.
     function approveDischarge(id) {
       const p = dischargePatients.find(item => item.id === id);
       if (!p) return;
+      if (!isAssignedDoctor(p)) { alert(`Only ${p.doctor || 'the assigned doctor'} can discharge ${p.name}.`); return; }
+      pendingDischargeId = id;
+      document.getElementById('dischargeConfirmBody').innerHTML = `
+        <div class="text-center space-y-2">
+          <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl c-green" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.4)"><i class="fa-solid fa-house-medical"></i></div>
+          <h3 class="text-base font-bold c-ink">Confirm Home Discharge</h3>
+          <p class="text-xs c-2">Please review the details before authorizing.</p>
+        </div>
+        <div class="well p-3 text-xs space-y-1.5">
+          <div class="flex justify-between gap-3"><span class="c-3">Patient</span><b class="c-ink text-right">${escH(p.name)} (${escH(p.age)}y)</b></div>
+          <div class="flex justify-between gap-3"><span class="c-3">Ward / bed</span><b class="c-ink text-right">${escH(p.ward)}</b></div>
+          <div class="flex justify-between gap-3"><span class="c-3">Assigned doctor</span><b class="c-ink text-right">${escH(p.doctor)}</b></div>
+          <div class="flex justify-between gap-3"><span class="c-3">Diagnosis</span><b class="c-ink text-right">${escH(p.diagnosis)}</b></div>
+          <div class="flex justify-between gap-3"><span class="c-3">Vitals</span><b class="c-green text-right font-mono">${p.vitals}</b></div>
+        </div>
+        <div class="text-[11px] c-2 space-y-1">
+          <p><i class="fa-solid fa-pills c-red mr-1"></i> ${escH(p.meds)}</p>
+          <p><i class="fa-solid fa-kit-medical c-green mr-1"></i> ${escH(p.homeKit)}</p>
+        </div>
+        <ul class="text-[11px] c-2 space-y-1 list-disc pl-4">
+          <li>The patient is cleared to go home with the medicines and kit above.</li>
+          <li>The bed is released and the manager's bed count updates instantly.</li>
+        </ul>
+        <div class="flex gap-2">
+          <button onclick="cancelDischarge()" class="btn btn-ghost flex-1 text-xs py-2.5">Cancel</button>
+          <button onclick="confirmDischarge()" class="btn btn-green flex-1 text-xs font-bold py-2.5 gap-1.5"><i class="fa-solid fa-check-double"></i> Confirm Discharge</button>
+        </div>`;
+      showModal('dischargeConfirmModal');
+    }
+    function cancelDischarge() { pendingDischargeId = null; hideModal('dischargeConfirmModal'); }
+
+    // Step 2: the original discharge logic, then a completed page.
+    function confirmDischarge() {
+      const id = pendingDischargeId;
+      const p = dischargePatients.find(item => item.id === id);
+      if (!p) return cancelDischarge();
+      if (!isAssignedDoctor(p)) { cancelDischarge(); return; }
 
       dischargePatients = dischargePatients.filter(item => item.id !== id);
       setStore('medflow_doc_discharge', dischargePatients);
@@ -1009,6 +1068,14 @@
       renderDischargeList();
 
       broadcastToCloud({ type: 'PATIENT_DISCHARGED', patientName: p.name });
+      document.getElementById('dischargeConfirmBody').innerHTML = `
+        <div class="text-center space-y-3 py-2">
+          <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl c-green" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.4)"><i class="fa-solid fa-circle-check"></i></div>
+          <h3 class="text-base font-bold c-ink">Discharge Authorized</h3>
+          <p class="text-xs c-2"><b class="c-ink">${escH(p.name)}</b> is cleared for home care. The bed has been freed.</p>
+          <button onclick="cancelDischarge()" class="btn btn-green w-full text-xs font-bold py-2.5">Done</button>
+        </div>`;
+      pendingDischargeId = null;
     }
 
     function showModal(id) {
@@ -1170,6 +1237,7 @@
               name: sp.name,
               age: sp.age || 45,
               ward: sp.ward || "General Ward",
+              doctor: sp.doctor || "",
               diagnosis: sp.condition || "Recovering - Cleared for Home",
               vitals: "Stable • Vitals Normal • Ambulatory",
               homeKit: "Digital Vitals Kit + 7-Day Care Protocol",
