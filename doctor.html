@@ -2,7 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- ZOOM LOCK: no pinch / double-tap / ctrl+wheel / keyboard zoom -->
+  <style>html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+  <script>
+    (function () {
+      var stop = function (e) { e.preventDefault(); };
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, stop, { passive: false }); });       // iOS Safari / macOS trackpad pinch
+      document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });  // two-finger pinch
+      window.addEventListener('wheel', function (e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });                    // ctrl/cmd + scroll, trackpad pinch
+      window.addEventListener('keydown', function (e) {                                                                                         // ctrl/cmd + + / - / 0
+        if ((e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].indexOf(e.key) !== -1) e.preventDefault();
+      });
+    })();
+  </script>
   <title>MedFlow — Doctor Duty & Emergency Response | SRM Prime, Ramapuram</title>
   <meta name="theme-color" content="#0d0507">
   <link rel="icon" type="image/png" href="assets/img/favicon.png">
@@ -480,6 +493,7 @@
           <button onclick="finishConsultation()" class="btn btn-green btn-wide w-full font-bold text-xs py-3 mt-2">
             <i class="fa-solid fa-check-circle"></i> Save & Sync Custom Plan to EMR
           </button>
+          <p class="text-[10px] c-3 text-center"><i class="fa-solid fa-signature c-green"></i> Saving digitally signs this plan as <span id="signNoteName">you</span></p>
         </div>
       </div>
     </section>
@@ -635,6 +649,46 @@
     }
     function setStore(key, val) {
       try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+    }
+
+
+    // ----- Digital signature helpers (kept identical in doctor.html and manager.html) -----
+    function sha256Hex(msg) {
+      const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+      const data = new TextEncoder().encode(msg), l = data.length, bits = l * 8;
+      const p = new Uint8Array(((l + 9 + 63) >> 6) << 6); p.set(data); p[l] = 0x80;
+      const dv = new DataView(p.buffer);
+      dv.setUint32(p.length - 8, Math.floor(bits / 4294967296)); dv.setUint32(p.length - 4, bits >>> 0);
+      let h = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+      const w = new Uint32Array(64);
+      for (let o = 0; o < p.length; o += 64) {
+        for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+        for (let i = 16; i < 64; i++) {
+          const a = w[i - 15], b = w[i - 2];
+          const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+          const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);
+          w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+        }
+        let [a, b, c, d, e, f, g, hh] = h;
+        for (let i = 0; i < 64; i++) {
+          const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+          const ch = (e & f) ^ (~e & g);
+          const t1 = (hh + S1 + ch + K[i] + w[i]) >>> 0;
+          const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+          const maj = (a & b) ^ (a & c) ^ (b & c);
+          const t2 = (S0 + maj) >>> 0;
+          hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+        }
+        h = [h[0] + a, h[1] + b, h[2] + c, h[3] + d, h[4] + e, h[5] + f, h[6] + g, h[7] + hh].map(x => x >>> 0);
+      }
+      return h.map(x => x.toString(16).padStart(8, '0')).join('');
+    }
+    function rxCanonical(rx, signedAt) {
+      return JSON.stringify([rx.rxNo, rx.issuedAt, rx.patientName, rx.doctorName, rx.doctorRole, rx.dept, rx.reason, rx.notes, rx.risk, rx.followUp, rx.orders, signedAt]);
+    }
+    function signPrescription(rx, signerName) {
+      const signedAt = new Date().toISOString();
+      return { signedBy: signerName, signedAt: signedAt, algo: 'SHA-256', hash: sha256Hex(rxCanonical(rx, signedAt)) };
     }
 
     let activeAlarmCall = {
@@ -858,6 +912,27 @@
 
       const doneId = currentConsultationId;
 
+      // Full prescription snapshot: saved locally (so the manager can open it later) and broadcast live
+      const issuedAt = new Date().toISOString();
+      const rx = {
+        id: doneId,
+        rxNo: 'RX-' + issuedAt.slice(0, 10).replace(/-/g, '') + '-' + String(doneId).slice(-4).padStart(4, '0'),
+        issuedAt: issuedAt,
+        patientName: patientName,
+        doctorName: currentDoctor.name,
+        doctorRole: currentDoctor.role,
+        dept: currentDoctor.dept,
+        reason: finishedPatient ? finishedPatient.reason : '',
+        notes: (document.getElementById('doctorNotes').value || '').trim(),
+        risk: document.getElementById('aiRiskSelect').value,
+        followUp: (document.getElementById('aiNextVisitInput').value || '').trim(),
+        orders: (document.getElementById('aiActionInput').value || '').trim()
+      };
+      rx.signature = signPrescription(rx, currentDoctor.name);     // sign the finished plan as the logged-in doctor
+      const rxStore = getStore('medflow_prescriptions', {});
+      rxStore[doneId] = rx;
+      setStore('medflow_prescriptions', rxStore);
+
       myAppointments = myAppointments.filter(a => a.id !== doneId);
       saveDoctorAppointments(currentDoctor, myAppointments);
       const doneList = getStore(doneKey(currentDoctor), []);
@@ -869,7 +944,8 @@
         type: 'APPOINTMENT_COMPLETED',
         appointmentId: doneId,
         patientName: patientName,
-        doctorName: currentDoctor.name
+        doctorName: currentDoctor.name,
+        prescription: rx
       });
     }
 
@@ -1264,6 +1340,7 @@
       currentDoctor = doc;
 
       document.getElementById('docHeaderName').innerText = doc.name;
+      document.getElementById('signNoteName').innerText = doc.name;
       document.getElementById('docHeaderRole').innerHTML = `${doc.role} &bull; SRM Prime, Ramapuram`;
       document.getElementById('copilotSubtitle').innerText = `${shortName(doc)}'s On-Call Clinical Assistant`;
       resetCopilot();

@@ -2,7 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- ZOOM LOCK: no pinch / double-tap / ctrl+wheel / keyboard zoom -->
+  <style>html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+  <script>
+    (function () {
+      var stop = function (e) { e.preventDefault(); };
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, stop, { passive: false }); });       // iOS Safari / macOS trackpad pinch
+      document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });  // two-finger pinch
+      window.addEventListener('wheel', function (e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });                    // ctrl/cmd + scroll, trackpad pinch
+      window.addEventListener('keydown', function (e) {                                                                                         // ctrl/cmd + + / - / 0
+        if ((e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].indexOf(e.key) !== -1) e.preventDefault();
+      });
+    })();
+  </script>
 <title>SRM Prime Hospital, Ramapuram | MedFlow</title>
 <meta name="description" content="SRM Prime, Ramapuram. MedFlow operational gateway for hospital managers and on-duty physicians.">
 <meta name="theme-color" content="#0d0507">

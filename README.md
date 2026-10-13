@@ -23,3 +23,12 @@ Settings → Pages → Deploy from branch → `main` / root. Keep `assets/` next
 at the top of the script in `doctor.html` and mirrors `medicalSpecialties` / `dynamicIndianStaff` in `manager.html`;
 if you add a doctor, add them in both files. Each doctor only sees their own appointments.
 This is client-side demo authentication only, not real security.
+
+## Prescriptions
+When a doctor taps **Save & Sync Custom Plan to EMR**, the plan (notes, risk, follow-up, orders) is saved and sent to the manager.
+In `manager.html` → **5. Appointments**, attended rows get a **Prescription** button: printer animation, preview, then **Download (PDF)**.
+The PDF is generated in the browser with no libraries (works offline); the logo is embedded as base64 inside `manager.html`.
+
+## Digital signature & zoom lock
+- Saving a plan in `doctor.html` signs it as the logged-in doctor: a SHA-256 checksum over the prescription fields plus the signer and time. `manager.html` re-checks it when opening or downloading and shows **Digitally signed**, **Signature invalid** (content changed) or **Not digitally signed** (older records). This is an electronic signature with tamper detection, not a certificate-based (DSC/PKI) signature.
+- Zoom is locked on all pages (viewport meta + pinch / double-tap / ctrl+wheel / keyboard shortcut blockers). Browser-menu zoom can't be disabled by a web page.
